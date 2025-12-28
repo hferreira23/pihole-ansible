@@ -1,31 +1,33 @@
+---
 name: Publish Collection to Ansible Galaxy
 
 on:
   release:
-    types: [published]
+    types:
+      - published
 
 jobs:
-  publish:
+  galaxy-publish:
     runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/hferreira23/ansible-docker:latest
+      env:
+        ANSIBLE_COLLECTIONS_PATH: "/root/.ansible/collections/ansible_collections/"
+
     steps:
       - name: Check out repository
-        uses: actions/checkout@v3
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.x'
-
-      - name: Install Ansible and dependencies
-        run: |
-          pip install ansible ansible-lint
+        uses: actions/checkout@v6
 
       - name: Build Ansible Collection
+        shell: bash
         run: |
+          set -euo pipefail
           ansible-galaxy collection build --output-path ./dist
 
       - name: Publish Collection
+        shell: bash
         env:
           ANSIBLE_GALAXY_API_KEY: ${{ secrets.ANSIBLE_GALAXY_API_KEY }}
         run: |
+          set -euo pipefail
           ansible-galaxy collection publish dist/*.tar.gz --api-key "$ANSIBLE_GALAXY_API_KEY"

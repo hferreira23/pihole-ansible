@@ -14,6 +14,10 @@
 
 ---
 
+[![Galaxy Publish](https://github.com/sbarbett/pihole-ansible/actions/workflows/galaxy-publish.yml/badge.svg)](https://github.com/sbarbett/pihole-ansible/actions/workflows/galaxy-publish.yml)
+[![Semantic Version Release](https://github.com/sbarbett/pihole-ansible/actions/workflows/sem-ver-release.yml/badge.svg)](https://github.com/sbarbett/pihole-ansible/actions/workflows/sem-ver-release.yml)
+[![Commit Lint](https://github.com/sbarbett/pihole-ansible/actions/workflows/commit-lint.yml/badge.svg)](https://github.com/sbarbett/pihole-ansible/actions/workflows/commit-lint.yml)
+
 ## Overview
 
 This collection provides Ansible modules and roles for managing PiHole v6 via a custom API client. This collection is built on top of the [pihole6api](https://github.com/sbarbett/pihole6api) Python library developed by Shane Barbetta, which handles authentication and requests.

@@ -1,14 +1,13 @@
----
 namespace: hferreira23
 name: pihole
-version: "1.1.2"
+version: 0.1.0
 readme: README.md
 authors:
   - Hugo Ferreira
-description: >
+description: |
   A collection of modules for managing your Pi-hole installation.
 license:
-  - "MIT"
+  - MIT
 tags:
   - pihole
   - dns

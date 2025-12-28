@@ -1,0 +1,47 @@
+---
+name: sem-ver-release
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+jobs:
+  sem-ver-release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: googleapis/release-please-action@v4 # Alternate action: https://github.com/release-please-oss/release-please-action
+        with:
+          config-file: .github/release-please-config.json
+          manifest-file: .github/release-please-manifest.json
+          token: ${{ secrets.GITHUB_TOKEN }}
+          # this is a built-in strategy in release-please, see "Action Inputs"
+          # for more options
+          # Options below work only with release-please-oss/release-please-action
+          # config-overrides-json: |
+          #   {
+          #     "include-v-in-tag": false,
+          #     "include-v-in-release-name": false,
+          #     "always-update": true,
+          #     "initial-version": "2.26.13",
+          #     "changelog-sections": [
+          #       {"type": "feat", "section": "Features", "hidden": false},
+          #       {"type": "fix", "section": "Bug Fixes", "hidden": false},
+          #       {"type": "perf", "section": "Performance Improvements", "hidden": false},
+          #       {"type": "revert", "section": "Reverts", "hidden": false},
+          #       {"type": "docs", "section": "Documentation", "hidden": false},
+          #       {"type": "style", "section": "Styles", "hidden": false},
+          #       {"type": "chore", "section": "Miscellaneous Chores", "hidden": false},
+          #       {"type": "refactor", "section": "Code Refactoring", "hidden": false},
+          #       {"type": "test", "section": "Tests", "hidden": false},
+          #       {"type": "build", "section": "Build System", "hidden": false},
+          #       {"type": "ci", "section": "Continuous Integration", "hidden": false}
+          #     ]
+          #   }

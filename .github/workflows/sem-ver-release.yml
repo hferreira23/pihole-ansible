@@ -17,11 +17,17 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - uses: actions/create-github-app-token@v2
+        id: hf-release-bot
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
       - uses: googleapis/release-please-action@v4 # Alternate action: https://github.com/release-please-oss/release-please-action
         with:
           config-file: .github/release-please-config.json
           manifest-file: .github/release-please-manifest.json
-          token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+          token: ${{ steps.hf-release-bot.outputs.token }}
           # this is a built-in strategy in release-please, see "Action Inputs"
           # for more options
           # Options below work only with release-please-oss/release-please-action

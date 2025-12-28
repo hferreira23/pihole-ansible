@@ -1,5 +1,5 @@
 ---
-name: Publish Collection to Ansible Galaxy
+name: galaxy-publish
 
 on:
   release:

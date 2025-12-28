@@ -21,7 +21,7 @@ jobs:
         with:
           config-file: .github/release-please-config.json
           manifest-file: .github/release-please-manifest.json
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
           # this is a built-in strategy in release-please, see "Action Inputs"
           # for more options
           # Options below work only with release-please-oss/release-please-action

@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.1.3](https://github.com/hferreira23/pihole-ansible/compare/0.1.2...0.1.3) (2025-12-28)
+
+
+### Documentation
+
+* add badges to README ([#13](https://github.com/hferreira23/pihole-ansible/issues/13)) ([ba274e6](https://github.com/hferreira23/pihole-ansible/commit/ba274e6e3f53c8176780fcccea5e9e0db07976ff))
+* fix URL in badges ([#14](https://github.com/hferreira23/pihole-ansible/issues/14)) ([16ebb59](https://github.com/hferreira23/pihole-ansible/commit/16ebb59003e1f9ac0cfc3a9a31d58af4e4cd4529))
+
+
+### Continuous Integration
+
+* adding dependabot + fixes ([#11](https://github.com/hferreira23/pihole-ansible/issues/11)) ([71c1ab0](https://github.com/hferreira23/pihole-ansible/commit/71c1ab048d6ae3839ce78d1a1cb4ad46b89c2705))
+
 ## [0.1.2](https://github.com/hferreira23/pihole-ansible/compare/0.1.1...0.1.2) (2025-12-28)
 
 

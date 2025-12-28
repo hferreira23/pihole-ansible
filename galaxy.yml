@@ -1,7 +1,6 @@
----
 namespace: hferreira23
 name: pihole
-version: 0.1.2
+version: 0.1.3
 readme: README.md
 authors:
   - Hugo Ferreira
@@ -17,9 +16,9 @@ tags:
 dependencies: {}
 repository: https://github.com/hferreira23/pihole-ansible
 build_ignore:
-  - "roles"
-  - "dist"
-  - ".ansible"
-  - ".vscode"
-  - ".github"
-  - ".gitignore"
+  - roles
+  - dist
+  - .ansible
+  - .vscode
+  - .github
+  - .gitignore

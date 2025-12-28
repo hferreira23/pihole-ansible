@@ -14,9 +14,9 @@
 
 ---
 
-[![Galaxy Publish](https://github.com/sbarbett/pihole-ansible/actions/workflows/galaxy-publish.yml/badge.svg)](https://github.com/sbarbett/pihole-ansible/actions/workflows/galaxy-publish.yml)
-[![Semantic Version Release](https://github.com/sbarbett/pihole-ansible/actions/workflows/sem-ver-release.yml/badge.svg)](https://github.com/sbarbett/pihole-ansible/actions/workflows/sem-ver-release.yml)
-[![Commit Lint](https://github.com/sbarbett/pihole-ansible/actions/workflows/commit-lint.yml/badge.svg)](https://github.com/sbarbett/pihole-ansible/actions/workflows/commit-lint.yml)
+[![Galaxy Publish](https://github.com/hferreira23/pihole-ansible/actions/workflows/galaxy-publish.yml/badge.svg)](https://github.com/hferreira23/pihole-ansible/actions/workflows/galaxy-publish.yml)
+[![Semantic Version Release](https://github.com/hferreira23/pihole-ansible/actions/workflows/sem-ver-release.yml/badge.svg)](https://github.com/hferreira23/pihole-ansible/actions/workflows/sem-ver-release.yml)
+[![Commit Lint](https://github.com/hferreira23/pihole-ansible/actions/workflows/commit-lint.yml/badge.svg)](https://github.com/hferreira23/pihole-ansible/actions/workflows/commit-lint.yml)
 
 ## Overview
 

@@ -13,6 +13,7 @@ jobs:
       image: ghcr.io/hferreira23/ansible-docker:latest
       env:
         ANSIBLE_COLLECTIONS_PATH: "/root/.ansible/collections/ansible_collections/"
+        ANSIBLE_GALAXY_API_KEY: ${{ secrets.ANSIBLE_GALAXY_API_KEY }}
 
     steps:
       - name: Check out repository
@@ -26,8 +27,6 @@ jobs:
 
       - name: Publish Collection
         shell: bash
-        env:
-          ANSIBLE_GALAXY_API_KEY: ${{ secrets.ANSIBLE_GALAXY_API_KEY }}
         run: |
           set -euo pipefail
           ansible-galaxy collection publish dist/*.tar.gz --api-key "$ANSIBLE_GALAXY_API_KEY"

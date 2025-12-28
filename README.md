@@ -98,7 +98,7 @@ deactivate
 
 **Using `pipx`:**
 
-If Ansible is installed via `pipx`, inject `pihole6api` into Ansible’s environment:
+If Ansible is installed via `pipx`, inject `pihole6api` into Ansible's environment:
 
 ```bash
 pipx inject ansible pihole6api --include-deps

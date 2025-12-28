@@ -1,0 +1,18 @@
+---
+profile: production
+
+skip_list:
+  - package-latest
+  - no-handler
+  - run-once
+  - no-changed-when
+  - yaml[line-length]
+
+warn_list:
+  - command-instead-of-module
+  - shell-instead-of-command
+
+exclude_paths:
+  - examples/
+  - roles/
+  - .github/

@@ -4,7 +4,7 @@ name: pihole
 version: "1.1.2"
 readme: README.md
 authors:
-  - Shane Barbetta
+  - Hugo Ferreira
 description: >
   A collection of modules for managing your Pi-hole installation.
 license:
@@ -13,6 +13,7 @@ tags:
   - pihole
   - dns
   - linux
+  - networking
 dependencies: {}
 repository: https://github.com/hferreira23/pihole-ansible
 build_ignore:

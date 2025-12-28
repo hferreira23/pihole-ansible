@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.1](https://github.com/hferreira23/pihole-ansible/compare/0.1.0...0.1.1) (2025-12-28)
+
+
+### Continuous Integration
+
+* fix release pipeline ([#7](https://github.com/hferreira23/pihole-ansible/issues/7)) ([d660f37](https://github.com/hferreira23/pihole-ansible/commit/d660f37c40652b0ab74eb6dc7e8c95d5abaae309))
+
 ## [0.1.0](https://github.com/hferreira23/pihole-ansible/compare/0.0.1...0.1.0) (2025-12-28)
 
 

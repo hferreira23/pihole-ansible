@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.4](https://github.com/hferreira23/pihole-ansible/compare/0.1.3...0.1.4) (2025-12-28)
+
+
+### Continuous Integration
+
+* move release-please to GH APP ([#16](https://github.com/hferreira23/pihole-ansible/issues/16)) ([62f0f42](https://github.com/hferreira23/pihole-ansible/commit/62f0f42a4344d0ed1b08b62e83a6c371d4ad2661))
+
 ## [0.1.3](https://github.com/hferreira23/pihole-ansible/compare/0.1.2...0.1.3) (2025-12-28)
 
 

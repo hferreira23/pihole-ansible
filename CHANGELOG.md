@@ -1,1 +1,28 @@
 # Changelog
+
+## [0.1.0](https://github.com/hferreira23/pihole-ansible/compare/0.0.1...0.1.0) (2025-12-28)
+
+
+### Features
+
+* **gravity:** add option to update gravity after setting lists ([3ac9605](https://github.com/hferreira23/pihole-ansible/commit/3ac9605b3bfaaacbd34aad7babf3760d459ee88c))
+* **gravity:** add option to update gravity after setting lists ([85f0be8](https://github.com/hferreira23/pihole-ansible/commit/85f0be89a9d16431af3308ac4a34122d2b5ad987))
+* update collection versioning ([#6](https://github.com/hferreira23/pihole-ansible/issues/6)) ([6d97ff1](https://github.com/hferreira23/pihole-ansible/commit/6d97ff10832b64e286e9e3584e4d167d7270ac28))
+
+
+### Documentation
+
+* overhaul ([#2](https://github.com/hferreira23/pihole-ansible/issues/2)) ([f620545](https://github.com/hferreira23/pihole-ansible/commit/f62054570a976daa6eb697f474fb84222120ca3a))
+* typo ([#3](https://github.com/hferreira23/pihole-ansible/issues/3)) ([152e8d8](https://github.com/hferreira23/pihole-ansible/commit/152e8d8422f46c89336975d64430fc6863b43846))
+
+
+### Miscellaneous Chores
+
+* changelog + version bump ([7cf7b64](https://github.com/hferreira23/pihole-ansible/commit/7cf7b640b6cb3805682d0727313fd5dc00fa1243))
+
+
+### Continuous Integration
+
+* overhaul ([#1](https://github.com/hferreira23/pihole-ansible/issues/1)) ([4f555d8](https://github.com/hferreira23/pihole-ansible/commit/4f555d87e75f8c3a1ea09e88ae7c97608c9ddf8b))
+
+## Changelog

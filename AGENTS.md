@@ -96,6 +96,8 @@ There is no 2.19 compatibility job. Do not pin/cap the test target or skip its
 installation because of a pip-cache hit. A lightweight changed-file gate skips
 draft PRs and irrelevant-only changes without leaving a required check pending;
 manual dispatch and failed detection run tests conservatively.
+Automatic tests run only for PRs, not pushes to `main` or feature branches;
+explicit manual dispatch is retained for on-demand validation.
 Run focused tests while iterating, then the full suite. The documentation suite
 builds and installs into a temporary location, checks `ansible-doc` JSON, text,
 and snippets, checks list docs against argument specs, and syntax-checks examples.

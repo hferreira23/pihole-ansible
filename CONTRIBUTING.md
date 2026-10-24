@@ -149,9 +149,10 @@ Use `collection build --force` only when intentionally replacing your own local
 build. Do not add virtual environments, credentials, caches, or generated tarballs
 to a change. Review new/untracked files as well as `git diff`.
 
-The test workflow runs on pull requests, pushes to `main`, and manual dispatch;
-feature pushes do not duplicate PR runs. Draft PRs skip work; marking them ready
-starts validation, and converting them back to draft cancels superseded runs.
+The test workflow runs on pull requests and explicit manual dispatch only.
+Pushes to `main` or feature branches do not trigger it, avoiding duplicate tests
+after merge. Draft PRs skip work; marking them ready starts validation, and
+converting them back to draft cancels superseded runs.
 Title/body/label edits do not retrigger tests. New runs cancel older runs for the
 same PR/ref.
 

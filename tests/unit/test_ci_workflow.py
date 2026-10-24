@@ -41,10 +41,9 @@ def test_test_requirements_do_not_cap_ansible_core():
     assert all(item.operator in ('>', '>=') for item in requirement.specifier)
 
 
-def test_triggers_skip_feature_pushes_and_pr_metadata_edits(workflow):
+def test_triggers_only_prs_and_manual_dispatch(workflow):
     events = workflow['on']
-    assert events['push']['branches'] == ['main']
-    assert 'workflow_dispatch' in events
+    assert set(events) == {'pull_request', 'workflow_dispatch'}
     assert set(events['pull_request']['types']) == {
         'opened', 'synchronize', 'reopened', 'ready_for_review', 'converted_to_draft'}
     assert workflow['permissions'] == {'contents': 'read'}
@@ -52,7 +51,6 @@ def test_triggers_skip_feature_pushes_and_pr_metadata_edits(workflow):
 
 
 def test_change_gate_keeps_required_status_and_fails_open(workflow):
-    assert 'paths' not in workflow['on']['push']
     assert 'paths' not in workflow['on']['pull_request']
     job = workflow['jobs']['changes']
     assert '!github.event.pull_request.draft' in job['if']

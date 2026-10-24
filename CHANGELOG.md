@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.0.0](https://github.com/hferreira23/pihole-ansible/compare/0.1.4...1.0.0) (2026-10-24)
+
+
+### ⚠ BREAKING CHANGES
+
+* **pihole:** HTTPS certificate verification is now enabled from authentication onward; configure ca_path or explicitly set validate_certs=false for private/self-signed endpoints. Omitted list groups now preserve existing memberships, unknown group names and rejected API operations fail instead of being ignored, list check mode requires API access, and update_gravity no longer forces gravity on unchanged lists.
+
+### Bug Fixes
+
+* **pihole:** harden list reconciliation and API transport ([#18](https://github.com/hferreira23/pihole-ansible/issues/18)) ([788ec89](https://github.com/hferreira23/pihole-ansible/commit/788ec899a2cbc32ef227da76f6c9481c8495b98f))
+
 ## [0.1.4](https://github.com/hferreira23/pihole-ansible/compare/0.1.3...0.1.4) (2025-12-28)
 
 

@@ -1,5 +1,23 @@
 # Changelog
 
+## [1.1.0](https://github.com/hferreira23/pihole-ansible/compare/1.0.0...1.1.0) (2026-10-24)
+
+
+### Features
+
+* **lists:** add configurable gravity timeout ([#21](https://github.com/hferreira23/pihole-ansible/issues/21)) ([6d3c5c1](https://github.com/hferreira23/pihole-ansible/commit/6d3c5c149c2732d4275d96ef00f062bb17b2c70c))
+
+
+### Bug Fixes
+
+* **groups-clients:** preserve omitted comments on updates ([#20](https://github.com/hferreira23/pihole-ansible/issues/20)) ([07c3f54](https://github.com/hferreira23/pihole-ansible/commit/07c3f5457db26aeed6cc0393835596d66c92c0be))
+
+
+### Continuous Integration
+
+* run automatic tests only on pull requests ([#24](https://github.com/hferreira23/pihole-ansible/issues/24)) ([1c6c5fc](https://github.com/hferreira23/pihole-ansible/commit/1c6c5fc192371215cebeabd248b1962a6ff6a897))
+* test latest Ansible only and skip irrelevant changes ([#22](https://github.com/hferreira23/pihole-ansible/issues/22)) ([d406c2a](https://github.com/hferreira23/pihole-ansible/commit/d406c2ac24fd5457178e7d9cf8698eb469bdd9b9))
+
 ## [1.0.0](https://github.com/hferreira23/pihole-ansible/compare/0.1.4...1.0.0) (2026-10-24)
 
 

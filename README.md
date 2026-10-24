@@ -244,8 +244,13 @@ Tests use mocked Pi-hole API responses and a temporary loopback HTTPS server;
 no running Pi-hole instance is required. Documentation tests build and install
 the collection into a temporary directory, exercise text and JSON `ansible-doc`
 output for the new features, compare list options with the argument specification,
-and syntax-check the example playbooks. CI runs them on Ansible 2.19 and the
-latest available ansible-core.
+and syntax-check the example playbooks. CI defaults to the latest stable
+ansible-core on supported Python 3.14, explicitly upgraded on every test run;
+there is no older-version compatibility job. Draft PRs and changes limited to
+guides, historical roles, or unrelated automation skip the expensive tests.
+Relevant PRs and pushes to `main` run validation; manual dispatch always runs it.
+The required test check is still reported for skipped changes. JUnit reports are
+retained for 14 days.
 
 For contributions to the maintained upstream collection, use:
 [https://github.com/sbarbett/pihole-ansible](https://github.com/sbarbett/pihole-ansible)

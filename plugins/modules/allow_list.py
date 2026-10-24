@@ -39,6 +39,7 @@ EXAMPLES = r'''
       - address: https://example.com/old.txt
         state: absent
     update_gravity: true
+    gravity_timeout: 300  # Allow a longer gravity request for a large deployment
 
 - name: Update a comment without changing existing memberships
   hferreira23.pihole.allow_list:

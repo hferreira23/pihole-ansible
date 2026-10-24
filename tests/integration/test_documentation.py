@@ -72,6 +72,9 @@ def test_list_docs_match_runtime_contract(collection_docs, name):
         assert nested[option]['type'] == spec['type']
         assert nested[option].get('default') == spec.get('default')
     assert documented['groups']['elements'] == nested['groups']['elements'] == 'raw'
+    assert documented['gravity_timeout']['type'] == 'int'
+    assert documented['gravity_timeout']['default'] == 60
+    assert 'Positive request timeout' in ' '.join(documented['gravity_timeout']['description'])
     assert 'clears' in ' '.join(documented['groups']['description'])
     assert 'preserve' in ' '.join(nested['groups']['description'])
     assert module['doc']['attributes']['check_mode']['support'] == 'full'
@@ -100,6 +103,8 @@ def test_task_snippet_includes_shared_tls_options(collection_docs, name):
     # ansible-doc emits short module names even when invoked with an FQCN.
     assert '\n  ' + name + ':' in output
     assert 'validate_certs:' in output and 'ca_path:' in output
+    if name in LIST_MODULES:
+        assert 'gravity_timeout:' in output
 
 
 def validate_inputs(inputs, options):

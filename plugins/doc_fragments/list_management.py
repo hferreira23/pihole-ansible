@@ -84,8 +84,18 @@ options:
       - Runs only if at least one list was added, updated, or deleted; a converged invocation does not run gravity.
       - Never runs in check mode or after a failed batch. A gravity API failure fails the module.
       - Each invocation is independent; this does not coalesce gravity across multiple module tasks.
+      - Use O(gravity_timeout) to allow longer-running gravity requests.
     type: bool
     default: false
+  gravity_timeout:
+    description:
+      - Positive request timeout in seconds for gravity when O(update_gravity=true) and a list changes.
+      - Does not change the timeout for authentication, list/group reads, list mutations, or logout.
+      - Unused when gravity is skipped, including in check mode and on convergence.
+      - Uses Requests timeout semantics, not a total runtime deadline; it does not cancel a server-side gravity run.
+      - A timeout fails the module but does not roll back earlier successful list changes.
+    type: int
+    default: 60
 attributes:
   check_mode:
     support: full

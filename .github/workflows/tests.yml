@@ -3,27 +3,77 @@ name: tests
 
 on:
   push:
+    branches: [main]
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
+  workflow_dispatch:
 
 permissions:
   contents: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  unit:
+  changes:
+    if: ${{ github.event_name != 'pull_request' || !github.event.pull_request.draft }}
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        ansible: ["ansible-core~=2.19.0", "ansible-core"]
+    timeout-minutes: 5
+    outputs:
+      required: ${{ steps.changes.outputs.required }}
+    steps:
+      - name: Check out history for changed-file detection
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: Decide whether collection tests are needed
+        id: changes
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: python .github/scripts/ci_test_changes.py
+  unit:
+    # Report a skipped required check rather than leaving it pending through
+    # workflow-level path filters. Run conservatively if detection fails.
+    name: unit (ansible-core)
+    needs: changes
+    if: ${{ !cancelled() && (needs.changes.result == 'failure' || needs.changes.outputs.required == 'true') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - name: Check out repository
         uses: actions/checkout@v6
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
-          python-version: "3.13"
+          # Ansible currently supports 3.14, not every newly released Python.
+          python-version: "3.14"
+          check-latest: true
+          cache: pip
+          cache-dependency-path: tests/requirements.txt
       - name: Install test dependencies
-        run: python -m pip install -r tests/requirements.txt "${{ matrix.ansible }}"
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install --upgrade -r tests/requirements.txt ansible-core
+          python -m pip check
+      - name: Show test environment
+        run: |
+          python --version
+          ansible --version
+          python -m pip show ansible-core
+      - name: Compile Python sources
+        run: python -m compileall -q plugins tests .github/scripts
       - name: Run regression tests
-        run: python -m pytest -q
+        run: python -m pytest -q --junitxml="$RUNNER_TEMP/pytest.xml"
       - name: Build collection
         run: ansible-galaxy collection build --output-path dist
+      - name: Upload test report
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: pytest-latest-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/pytest.xml
+          if-no-files-found: ignore
+          retention-days: 14

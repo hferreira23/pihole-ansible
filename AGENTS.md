@@ -32,7 +32,8 @@ apply within those directories.
 | `tests/integration/` | Loopback HTTPS tests and built-collection documentation/example validation; no live Pi-hole |
 | `roles/` | Historical role source and role examples; excluded from Galaxy builds |
 | `galaxy.yml`, `meta/runtime.yml` | Collection identity, packaging exclusions, and minimum Ansible version |
-| `.github/workflows/` | Test matrix, commit linting, release automation, Galaxy publishing |
+| `.github/workflows/` | Test workflow, commit linting, release automation, Galaxy publishing |
+| `.github/scripts/ci_test_changes.py` | Conservative changed-file gate for the single latest-Ansible CI test job |
 
 ### Architecture and boundaries
 
@@ -81,13 +82,20 @@ apply within those directories.
 python3 -m venv .venv
 .venv/bin/python -m pip install -r tests/requirements.txt
 .venv/bin/python -m pytest -q
-.venv/bin/python -m compileall -q plugins tests
+.venv/bin/python -m compileall -q plugins tests .github/scripts
 git diff --check
 .venv/bin/ansible-galaxy collection build --output-path dist
 ```
 
 Use Python 3.13+ for the documented development setup and Ansible 2.19+ as required
-by `meta/runtime.yml`. CI tests Ansible 2.19 and the latest available ansible-core.
+by `meta/runtime.yml`. CI tests only the latest stable ansible-core on supported
+Python 3.14, explicitly upgrading unpinned `ansible-core` on every test run.
+Advance Python only when Ansible supports it; rolling `3.x` can select an
+unsupported interpreter before Ansible is ready for it.
+There is no 2.19 compatibility job. Do not pin/cap the test target or skip its
+installation because of a pip-cache hit. A lightweight changed-file gate skips
+draft PRs and irrelevant-only changes without leaving a required check pending;
+manual dispatch and failed detection run tests conservatively.
 Run focused tests while iterating, then the full suite. The documentation suite
 builds and installs into a temporary location, checks `ansible-doc` JSON, text,
 and snippets, checks list docs against argument specs, and syntax-checks examples.

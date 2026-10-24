@@ -43,13 +43,19 @@ python3 -m venv .venv
 version. The dependency is not source in this repository. Do not edit a
 site-packages copy or the system Python environment to implement a collection fix.
 
-Ansible requires version 2.19+ (`meta/runtime.yml`). CI tests both the 2.19 line and
-the latest available ansible-core on Python 3.13. To reproduce both locally:
+Ansible requires version 2.19+ (`meta/runtime.yml`). The single CI test target
+uses supported Python 3.14 and unpinned `ansible-core`, explicitly upgraded on
+each run. Advance the Python minor only when Ansible supports it: rolling `3.x`
+can select a newly released interpreter before Ansible works with it.
+There is no older-version compatibility job; this does not change the collection's
+declared minimum. The pip
+cache stores downloads, not an installed environment, so it does not freeze the
+latest target. Python setup also checks for the newest matching 3.14 patch release
+rather than relying only on the runner's preinstalled versions.
+To reproduce the CI dependency selection locally:
 
 ```sh
-.venv/bin/python -m pip install 'ansible-core~=2.19.0'
-.venv/bin/python -m pytest -q
-.venv/bin/python -m pip install --upgrade ansible-core
+.venv/bin/python -m pip install --upgrade -r tests/requirements.txt ansible-core
 .venv/bin/python -m pytest -q
 ```
 
@@ -132,7 +138,7 @@ List check mode still authenticates/reads and requires existing referenced group
 
 ```sh
 .venv/bin/python -m pytest -q
-.venv/bin/python -m compileall -q plugins tests
+.venv/bin/python -m compileall -q plugins tests .github/scripts
 git diff --check
 .venv/bin/ansible-galaxy collection build --output-path dist
 git diff --stat
@@ -143,7 +149,28 @@ Use `collection build --force` only when intentionally replacing your own local
 build. Do not add virtual environments, credentials, caches, or generated tarballs
 to a change. Review new/untracked files as well as `git diff`.
 
-The test workflow runs the suite and collection build. Optional linters have
+The test workflow runs on pull requests, pushes to `main`, and manual dispatch;
+feature pushes do not duplicate PR runs. Draft PRs skip work; marking them ready
+starts validation, and converting them back to draft cancels superseded runs.
+Title/body/label edits do not retrigger tests. New runs cancel older runs for the
+same PR/ref.
+
+A lightweight changed-file gate skips the expensive job for changes limited to
+Markdown guides, historical roles, or unrelated release/bot/workflow configuration.
+Changes to plugins (including embedded documentation), tests, example playbooks,
+runtime/packaging metadata, the test workflow/selector, and unknown paths still
+run. Renames include both old and new paths. Missing history or detection errors
+run tests conservatively; manual dispatch always runs the suite. There are no
+workflow-level path filters, so the existing required `unit (ansible-core)` check
+is reported as skipped rather than left pending for irrelevant changes.
+If repository rules still require `unit (ansible-core~=2.19.0)`, remove that
+obsolete requirement; the old compatibility job is no longer emitted.
+
+The single test job logs its resolved Ansible version, checks dependencies,
+compiles Python, runs the suite, and builds the collection. JUnit reports are
+written outside the collection tree and retained for 14 days even if tests fail.
+
+Optional linters have
 repository configuration (`.ansible-lint`, `.yamllint`) but are not installed by
 the test requirements; do not claim they ran unless you actually ran them. A
 successful collection build does not prove live API compatibility or role safety.

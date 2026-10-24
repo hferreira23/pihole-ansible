@@ -1,27 +1,33 @@
 ---
-- name: Manage PiHole clients
+- name: Manage Pi-hole clients
   hosts: localhost
+  connection: local
   gather_facts: false
+  vars:
+    ansible_python_interpreter: "{{ ansible_playbook_python }}"
+  module_defaults:
+    hferreira23.pihole.clients:
+      url: "{{ pihole_url }}"
+      password: "{{ pihole_password }}"
+      validate_certs: "{{ pihole_validate_certs | default(true) }}"
+      ca_path: "{{ pihole_ca_path | default(omit) }}"
   tasks:
-    - name: Manage PiHole clients
-      sbarbett.pihole.clients:
+    # Provision Cameras/IoT first with manage-groups.yml (or use existing names).
+    - name: Add or update clients and remove one retired client
+      hferreira23.pihole.clients:
         clients:
-          - name: 192.168.30.0/24
-            comment: Default VLAN
-            groups:
-              - Default
-              - test
+          - name: 192.0.2.32/27
+            comment: Camera network (documentation range; adapt)
+            groups: [Cameras]
+            state: present
+          - name: 192.0.2.64/27
+            comment: IoT network (documentation range; adapt)
+            groups: [IoT]
+            state: present
+          - name: 192.0.2.96/27
             state: absent
-          - name: 192.168.40.0/24
-            groups:
-              - test
-            state: absent
-          - name: 192.168.50.0/24
-            state: absent
-        url: "https://your-pihole.example.com"
-        password: "{{ pihole_password }}"
       register: client_result
 
-    - name: Display client result
+    - name: Show client results
       ansible.builtin.debug:
         var: client_result

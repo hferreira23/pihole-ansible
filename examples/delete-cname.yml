@@ -4,7 +4,7 @@
   gather_facts: false
   tasks:
     - name: Delete canonical.example.com CNAME
-      sbarbett.pihole.local_cname:
+      hferreira23.pihole.local_cname:
         host: canonical.example.com
         target: test.example.com
         state: absent

@@ -4,7 +4,7 @@
   gather_facts: false
   tasks:
     - name: Enable Pi-hole DHCP with range 10.0.6.50-10.0.6.100
-      sbarbett.pihole.dhcp_config:
+      hferreira23.pihole.dhcp_config:
         url: "https://your-pihole.example.com"
         password: "{{ pihole_password }}"
         state: present

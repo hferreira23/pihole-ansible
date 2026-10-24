@@ -2,9 +2,9 @@
 # -*- coding: utf-8 -*-
 
 from ansible.module_utils.basic import AnsibleModule
-try:
-    from pihole6api import PiHole6Client
-except ImportError:
+from ansible_collections.hferreira23.pihole.plugins.module_utils.client import PiHole6Client, HAS_PIHOLE6API
+
+if not HAS_PIHOLE6API:
     raise ImportError("The 'pihole6api' Python module is required. Run 'pip install pihole6api' to install it.")
 
 DOCUMENTATION = r'''
@@ -14,6 +14,7 @@ short_description: Manage Pi-hole listening mode via Pi-hole v6 API.
 description:
     - This module updates the DNS listening mode on a Pi-hole v6 instance using the pihole6api Python client.
     - If the specified listening mode is already set, no changes will be made.
+extends_documentation_fragment: [hferreira23.pihole.connection]
 options:
     mode:
         description:
@@ -39,13 +40,13 @@ author:
 
 EXAMPLES = r'''
 - name: Set Pi-hole listening mode to "all"
-  sbarbett.pihole.listening_mode:
+  hferreira23.pihole.listening_mode:
     url: "https://your-pihole.example.com"
     password: "{{ pihole_password }}"
     mode: "all"
 
 - name: Ensure Pi-hole is using "local" listening mode
-  sbarbett.pihole.listening_mode:
+  hferreira23.pihole.listening_mode:
     url: "https://your-pihole.example.com"
     password: "{{ pihole_password }}"
     mode: "local"
@@ -66,7 +67,9 @@ def run_module():
     module_args = dict(
         mode=dict(type='str', choices=['local', 'single', 'bind', 'all'], required=True),
         password=dict(type='str', required=True, no_log=True),
-        url=dict(type='str', required=True)
+        url=dict(type='str', required=True),
+        validate_certs=dict(type='bool', default=True),
+        ca_path=dict(type='path'),
     )
 
     result = dict(
@@ -86,8 +89,10 @@ def run_module():
     if module.check_mode:
         module.exit_json(**result)
 
+    client = None
     try:
-        client = PiHole6Client(url, password)
+        client = PiHole6Client(url, password, validate_certs=module.params['validate_certs'],
+                              ca_path=module.params['ca_path'])
 
         # Get current listening mode
         current_config = client.config.get_config_section("dns/listeningMode")

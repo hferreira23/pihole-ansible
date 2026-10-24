@@ -2,9 +2,9 @@
 # -*- coding: utf-8 -*-
 
 from ansible.module_utils.basic import AnsibleModule
-try:
-    from pihole6api import PiHole6Client
-except ImportError:
+from ansible_collections.hferreira23.pihole.plugins.module_utils.client import PiHole6Client, HAS_PIHOLE6API
+
+if not HAS_PIHOLE6API:
     raise ImportError("The 'pihole6api' Python module is required. Run 'pip install pihole6api' to install it.")
 
 DOCUMENTATION = r'''
@@ -15,6 +15,7 @@ description:
     - This module removes DHCP leases from a Pi-hole v6 instance using the pihole6api Python client.
     - Leases can be removed by filtering on `ip`, `name`, `clientid`, or `hwaddr`.
     - If multiple filters are specified, only leases that match all criteria will be removed.
+extends_documentation_fragment: [hferreira23.pihole.connection]
 options:
     ip:
         description:
@@ -53,25 +54,25 @@ author:
 
 EXAMPLES = r'''
 - name: Remove DHCP lease by IP
-  sbarbett.pihole.dhcp_remove_lease:
+  hferreira23.pihole.dhcp_remove_lease:
     url: "https://your-pihole.example.com"
     password: "{{ pihole_password }}"
     ip: "10.0.7.50"
 
 - name: Remove DHCP lease by hostname
-  sbarbett.pihole.dhcp_remove_lease:
+  hferreira23.pihole.dhcp_remove_lease:
     url: "https://your-pihole.example.com"
     password: "{{ pihole_password }}"
     name: "test-host1"
 
 - name: Remove all leases with specific MAC address
-  sbarbett.pihole.dhcp_remove_lease:
+  hferreira23.pihole.dhcp_remove_lease:
     url: "https://your-pihole.example.com"
     password: "{{ pihole_password }}"
     hwaddr: "aa:bb:cc:dd:ee:f1"
 
 - name: Remove leases that match multiple parameters
-  sbarbett.pihole.dhcp_remove_lease:
+  hferreira23.pihole.dhcp_remove_lease:
     url: "https://your-pihole.example.com"
     password: "{{ pihole_password }}"
     name: "test-host2"
@@ -96,6 +97,8 @@ def run_module():
         clientid=dict(type='str', required=False),
         hwaddr=dict(type='str', required=False),
         password=dict(type='str', required=True, no_log=True),
+        validate_certs=dict(type='bool', default=True),
+        ca_path=dict(type='path'),
         url=dict(type='str', required=True)
     )
 
@@ -124,8 +127,10 @@ def run_module():
     if module.check_mode:
         module.exit_json(**result)
 
+    client = None
     try:
-        client = PiHole6Client(url, password)
+        client = PiHole6Client(url, password, validate_certs=module.params['validate_certs'],
+                              ca_path=module.params['ca_path'])
 
         # Retrieve existing DHCP leases
         leases = client.dhcp.get_leases().get("leases", [])

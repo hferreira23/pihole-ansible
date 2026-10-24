@@ -13,6 +13,22 @@ module: clients
 short_description: Manage PiHole clients
 description:
   - Create, update, or delete PiHole clients.
+  - Reads groups and clients before making assignments; failed reads are not treated as an empty server.
+extends_documentation_fragment:
+  - hferreira23.pihole.connection
+attributes:
+  check_mode:
+    support: full
+    description: Authenticates and reads existing groups and clients to predict changes without client writes.
+  diff_mode:
+    support: none
+notes:
+  - Unknown group names fail before any client writes in the batch; they are never silently discarded.
+  - Referenced groups must already exist, including in check mode. A previous check-mode group task does not create them.
+  - HTTP errors, an API C(error) response, and nonempty C(processed.errors) fail the module.
+  - Batches are not transactions; successful earlier changes are not rolled back after a later failure.
+seealso:
+  - module: hferreira23.pihole.groups
 version_added: "1.0.0"
 author:
   - Simon Barbett (@sbarbett)
@@ -36,10 +52,11 @@ options:
         required: false
       groups:
         description:
-          - List of group names to assign to the client.
-          - Group names will be mapped to their corresponding IDs.
+          - Complete desired membership set as case-insensitive group names or unquoted integer IDs.
+          - Unknown names fail the module. Numeric strings are names, not integer IDs.
+          - Both omission and C([]) clear existing client memberships. Unlike the list modules, omission does not preserve them.
         type: list
-        elements: str
+        elements: raw
         required: false
         default: []
       state:
@@ -50,41 +67,61 @@ options:
         choices: [ present, absent ]
   url:
     description:
-      - URL of the PiHole server.
+      - Base URL of the Pi-hole instance, without the C(/api) suffix.
     type: str
     required: true
   password:
     description:
-      - Password for the PiHole server.
+      - Pi-hole API password or application password. Its value is hidden from module output.
     type: str
     required: true
-requirements:
-  - pihole6api
 '''
 
 EXAMPLES = r'''
-- name: Manage PiHole clients
-  sbarbett.pihole.clients:
+# Create custom groups with hferreira23.pihole.groups before using their names.
+- name: Assign clients to existing groups using names and integer IDs
+  hferreira23.pihole.clients:
     clients:
       - name: 192.168.30.0/24
         comment: Default VLAN
         groups:
           - Default
-          - test
+          - 1  # Replace with an existing group ID
         state: present
       - name: 192.168.40.0/24
         groups:
-          - test
+          - Default
         state: present
       - name: 192.168.50.0/24
         state: absent
-    url: "https://pihole.example.com"
-    password: "admin_password"
+    url: "{{ pihole_url }}"
+    password: "{{ pihole_password }}"
+    ca_path: /etc/ssl/certs/private-ca.pem
+
+- name: Clear every membership for one client
+  hferreira23.pihole.clients:
+    url: "{{ pihole_url }}"
+    password: "{{ pihole_password }}"
+    clients:
+      - name: 192.168.30.0/24
+        state: present
+        groups: []
+
+- name: Preview an assignment without changing client memberships
+  hferreira23.pihole.clients:
+    url: "{{ pihole_url }}"
+    password: "{{ pihole_password }}"
+    clients:
+      - name: 192.168.40.0/24
+        state: present
+        groups: [Default]
+  check_mode: true
+  register: client_preview
 '''
 
 RETURN = r'''
 clients:
-  description: List of clients that were created, updated, or deleted.
+  description: Per-client outcomes. In check mode, created, updated, and deleted are predictions.
   returned: always
   type: list
   elements: dict
@@ -96,48 +133,41 @@ clients:
       sample: 192.168.30.0/24
     comment:
       description: Comment for the client.
-      returned: always
+      returned: for present clients
       type: str
       sample: Default VLAN
     groups:
-      description: List of group names assigned to the client.
-      returned: always
+      description: Requested group names or integer IDs; unchanged clients report resolved group names.
+      returned: for present clients
       type: list
-      elements: str
+      elements: raw
       sample: ["Default", "test"]
     state:
-      description: State of the client.
+      description: One of C(created), C(updated), C(deleted), or C(unchanged).
       returned: always
       type: str
-      sample: present
+      sample: created
+changed:
+  description: Whether a client changed, or would change in check mode. May be true after a partial batch failure.
+  returned: always
+  type: bool
+response:
+  description: Failed API response or malformed read response, retaining server error details.
+  returned: on failure when an API response is available
+  type: raw
+status_code:
+  description: HTTP status of a failed API response, possibly 200 for API errors in a successful HTTP response.
+  returned: on failure when the transport supplies an HTTP status
+  type: int
 '''
 
 from ansible.module_utils.basic import AnsibleModule
 from ansible.module_utils.common.text.converters import to_native
 
-try:
-    from pihole6api import PiHole6Client
-    HAS_PIHOLE6API = True
-except ImportError:
-    HAS_PIHOLE6API = False
-
-
-def get_existing_groups(client):
-    """
-    Get existing groups from PiHole.
-    
-    Args:
-        client: PiHole6Client instance
-        
-    Returns:
-        dict: Mapping of group names to group details
-    """
-    try:
-        response = client.group_management.get_groups()
-        groups = response.get('groups', [])
-        return {group['name']: group for group in groups}
-    except Exception as e:
-        return {}
+from ansible_collections.hferreira23.pihole.plugins.module_utils.client import HAS_PIHOLE6API, PiHole6Client
+from ansible_collections.hferreira23.pihole.plugins.module_utils.api import (
+    failure_details, get_existing_groups, map_groups_to_ids, response_items, validate_response,
+)
 
 
 def get_existing_clients(client):
@@ -150,12 +180,9 @@ def get_existing_clients(client):
     Returns:
         dict: Mapping of client addresses to client details
     """
-    try:
-        response = client.client_management.get_clients()
-        clients = response.get('clients', [])
-        return {client_data['client']: client_data for client_data in clients}
-    except Exception as e:
-        return {}
+    response = client.client_management.get_clients()
+    clients = response_items(response, 'clients')
+    return {client_data['client']: client_data for client_data in clients}
 
 
 def create_client(client, name, comment=None, groups=None):
@@ -171,10 +198,7 @@ def create_client(client, name, comment=None, groups=None):
     Returns:
         dict: Response from the API
     """
-    try:
-        return client.client_management.add_client(name, comment=comment, groups=groups or [])
-    except Exception as e:
-        return {'error': to_native(e)}
+    return client.client_management.add_client(name, comment=comment, groups=groups or [])
 
 
 def update_client(client, name, comment=None, groups=None):
@@ -190,10 +214,7 @@ def update_client(client, name, comment=None, groups=None):
     Returns:
         dict: Response from the API
     """
-    try:
-        return client.client_management.update_client(name, comment=comment, groups=groups or [])
-    except Exception as e:
-        return {'error': to_native(e)}
+    return client.client_management.update_client(name, comment=comment, groups=groups or [])
 
 
 def delete_client(client, name):
@@ -207,10 +228,7 @@ def delete_client(client, name):
     Returns:
         dict: Response from the API
     """
-    try:
-        return client.client_management.delete_client(name)
-    except Exception as e:
-        return {'error': to_native(e)}
+    return client.client_management.delete_client(name)
 
 
 def batch_delete_clients(client, names):
@@ -224,43 +242,8 @@ def batch_delete_clients(client, names):
     Returns:
         dict: Response from the API
     """
-    try:
-        # The batch_delete_clients method expects a list of dicts with "item" key
-        items = [{"item": name} for name in names]
-        return client.client_management.batch_delete_clients(items)
-    except Exception as e:
-        return {'error': to_native(e)}
-
-
-def map_groups_to_ids(module, group_names, existing_groups):
-    """
-    Map group names to their corresponding IDs.
-    If a group name doesn't exist, it will be ignored with a warning.
-    """
-    group_ids = []
-    missing_groups = []
-    
-    for name in group_names:
-        # If it's already an ID (integer), add it directly
-        if isinstance(name, int):
-            group_ids.append(name)
-            continue
-            
-        # Otherwise, look up the ID by name
-        found = False
-        for group_name, details in existing_groups.items():
-            if group_name.lower() == name.lower():
-                group_ids.append(details['id'])
-                found = True
-                break
-                
-        if not found:
-            missing_groups.append(name)
-    
-    if missing_groups:
-        module.warn(f"The following groups were not found and will be ignored: {', '.join(missing_groups)}")
-    
-    return group_ids
+    # The batch_delete_clients method expects dictionaries with an item key.
+    return client.client_management.batch_delete_clients([{"item": name} for name in names])
 
 
 def main():
@@ -272,12 +255,14 @@ def main():
             options=dict(
                 name=dict(type='str', required=True),
                 comment=dict(type='str', required=False, default=None),
-                groups=dict(type='list', elements='str', required=False, default=[]),
+                groups=dict(type='list', elements='raw', required=False, default=[]),
                 state=dict(type='str', required=True, choices=['present', 'absent']),
             ),
         ),
         url=dict(type='str', required=True),
         password=dict(type='str', required=True, no_log=True),
+        validate_certs=dict(type='bool', default=True),
+        ca_path=dict(type='path'),
     )
 
     result = dict(
@@ -299,14 +284,16 @@ def main():
 
     client = None
     try:
-        client = PiHole6Client(url, password)
+        client = PiHole6Client(url, password, validate_certs=module.params['validate_certs'],
+                              ca_path=module.params['ca_path'])
         
         # Get existing groups and clients
         existing_groups = get_existing_groups(client)
         existing_clients = get_existing_clients(client)
         
-        # Map group names to IDs
-        group_name_to_id = {name: details['id'] for name, details in existing_groups.items()}
+        # Resolve the whole batch before making any assignments.
+        resolved_groups = {item['name']: map_groups_to_ids(item.get('groups', []), existing_groups)
+                           for item in clients if item['state'] == 'present'}
         
         # Clients to delete (state: absent)
         clients_to_delete = [client_data['name'] for client_data in clients 
@@ -320,15 +307,14 @@ def main():
             group_names = client_data.get('groups', [])
             
             # Map group names to IDs
-            group_ids = map_groups_to_ids(module, group_names, existing_groups)
+            group_ids = resolved_groups.get(name, [])
             
             if state == 'present':
                 if name not in existing_clients:
                     # Create new client
                     if not module.check_mode:
                         response = create_client(client, name, comment, group_ids)
-                        if 'error' in response:
-                            module.fail_json(msg=f'Failed to create client {name}: {response["error"]}')
+                        validate_response(response, f'create client {name}')
                     result['changed'] = True
                     result['clients'].append({
                         'name': name,
@@ -353,8 +339,7 @@ def main():
                     if update_needed:
                         if not module.check_mode:
                             response = update_client(client, name, comment, group_ids)
-                            if 'error' in response:
-                                module.fail_json(msg=f'Failed to update client {name}: {response["error"]}')
+                            validate_response(response, f'update client {name}')
                         result['changed'] = True
                         result['clients'].append({
                             'name': name,
@@ -381,30 +366,23 @@ def main():
         
         # Delete clients
         if clients_to_delete:
-            result['changed'] = True
-            for name in clients_to_delete:
-                result['clients'].append({
-                    'name': name,
-                    'state': 'deleted'
-                })
-            
             if not module.check_mode:
                 if len(clients_to_delete) == 1:
                     response = delete_client(client, clients_to_delete[0])
-                    if 'error' in response:
-                        module.fail_json(msg=f'Failed to delete client {clients_to_delete[0]}: {response["error"]}')
                 else:
                     response = batch_delete_clients(client, clients_to_delete)
-                    if 'error' in response:
-                        module.fail_json(msg=f'Failed to delete clients {", ".join(clients_to_delete)}: {response["error"]}')
+                validate_response(response, f'delete clients {", ".join(clients_to_delete)}')
+            result['changed'] = True
+            for name in clients_to_delete:
+                result['clients'].append({'name': name, 'state': 'deleted'})
         
         module.exit_json(**result)
     except Exception as e:
-        module.fail_json(msg=f'Error managing clients: {to_native(e)}', **result)
+        module.fail_json(msg=f'Error managing clients: {to_native(e)}', **failure_details(e), **result)
     finally:
         if client is not None:
             client.close_session()
 
 
 if __name__ == '__main__':
-    main() 
+    main()

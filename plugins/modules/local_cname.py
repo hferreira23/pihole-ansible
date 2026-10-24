@@ -2,9 +2,9 @@
 # -*- coding: utf-8 -*-
 
 from ansible.module_utils.basic import AnsibleModule
-try:
-    from pihole6api import PiHole6Client
-except ImportError:
+from ansible_collections.hferreira23.pihole.plugins.module_utils.client import PiHole6Client, HAS_PIHOLE6API
+
+if not HAS_PIHOLE6API:
     raise ImportError("The 'pihole6api' Python module is required. Run 'pip install pihole6api' to install it.")
 
 DOCUMENTATION = r'''
@@ -13,6 +13,7 @@ module: local_cname
 short_description: Manage Pi-hole local CNAME records via the pihole v6 API.
 description:
     - This module adds or removes local CNAME records on a Pi-hole instance using the piholev6api Python client.
+extends_documentation_fragment: [hferreira23.pihole.connection]
 options:
     host:
         description:
@@ -52,7 +53,7 @@ author:
 
 EXAMPLES = r'''
 - name: Create test2.example.com CNAME record
-  sbarbett.pihole.local_cname:
+  hferreira23.pihole.local_cname:
     host: test2.example.com
     target: test.example.com
     ttl: 300
@@ -61,7 +62,7 @@ EXAMPLES = r'''
     password: "{{ pihole_password }}"
 
 - name: Remove test2.example.com CNAME record
-  sbarbett.pihole.local_cname:
+  hferreira23.pihole.local_cname:
     host: test2.example.com
     target: test.example.com
     ttl: 300
@@ -88,7 +89,9 @@ def run_module():
         ttl=dict(type='int', required=False),
         state=dict(type='str', choices=['present', 'absent'], required=True),
         password=dict(type='str', required=True, no_log=True),
-        url=dict(type='str', required=True)
+        url=dict(type='str', required=True),
+        validate_certs=dict(type='bool', default=True),
+        ca_path=dict(type='path'),
     )
 
     result = dict(
@@ -111,8 +114,10 @@ def run_module():
     if module.check_mode:
         module.exit_json(**result)
 
+    client = None
     try:
-        client = PiHole6Client(url, password)
+        client = PiHole6Client(url, password, validate_certs=module.params['validate_certs'],
+                              ca_path=module.params['ca_path'])
         current_config = client.config.get_config_section("dns/cnameRecords")
         cname_list = current_config.get("config", {}).get("dns", {}).get("cnameRecords", [])
 

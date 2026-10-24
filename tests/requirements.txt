@@ -1,0 +1,3 @@
+ansible-core>=2.19
+pihole6api==0.2.1
+pytest>=8

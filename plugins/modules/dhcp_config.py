@@ -10,6 +10,7 @@ description:
   - This module enables/disables the Pi-hole DHCP server and configures IPv4/IPv6 DHCP options (range, router, lease time, etc.).
   - It does NOT manage static DHCP reservations (dhcp.hosts).
   - Uses the pihole6api Python client under the hood.
+extends_documentation_fragment: [hferreira23.pihole.connection]
 options:
   url:
     description:
@@ -85,7 +86,7 @@ author:
 
 EXAMPLES = r'''
 - name: Enable Pi-hole DHCP with range 10.0.6.50-10.0.6.100
-  sbarbett.pihole.dhcp_config:
+  hferreira23.pihole.dhcp_config:
     url: "https://your-pihole.example.com"
     password: "{{ pihole_password }}"
     state: present
@@ -95,7 +96,7 @@ EXAMPLES = r'''
     lease_time: "24h"
 
 - name: Disable Pi-hole DHCP
-  sbarbett.pihole.dhcp_config:
+  hferreira23.pihole.dhcp_config:
     url: "https://your-pihole.example.com"
     password: "{{ pihole_password }}"
     state: absent
@@ -114,15 +115,17 @@ result:
 
 from ansible.module_utils.basic import AnsibleModule
 
-try:
-    from pihole6api import PiHole6Client
-except ImportError:
+from ansible_collections.hferreira23.pihole.plugins.module_utils.client import PiHole6Client, HAS_PIHOLE6API
+
+if not HAS_PIHOLE6API:
     raise ImportError("The 'pihole6api' Python module is required. Please install via 'pip install pihole6api'.")
 
 def run_module():
     module_args = dict(
         url=dict(type='str', required=True),
         password=dict(type='str', required=True, no_log=True),
+        validate_certs=dict(type='bool', default=True),
+        ca_path=dict(type='path'),
         state=dict(type='str', required=True, choices=['present', 'absent']),
         start=dict(type='str', required=False),
         end=dict(type='str', required=False),
@@ -177,7 +180,8 @@ def run_module():
 
     # Connect to Pi-hole
     try:
-        client = PiHole6Client(url, password)
+        client = PiHole6Client(url, password, validate_certs=module.params['validate_certs'],
+                              ca_path=module.params['ca_path'])
     except Exception as e:
         module.fail_json(msg=f"Failed to connect to Pi-hole: {e}", **result)
 

@@ -74,7 +74,7 @@ Batch entries omitted from `lists` are left alone, and `lists: []` manages nothi
 
 Create custom groups with `manage-groups.yml` before assigning their names in `manage-clients.yml` or a list. Alternatively, use already-existing group names/IDs. In check mode, a group creation is only predicted, so a later task that reads/resolves that newly named group cannot use it yet: provision missing groups first or reference existing IDs.
 
-The clients module treats an omitted `groups` field as its default `[]`; unlike list updates, omission does not preserve existing client memberships. Provide the desired groups explicitly when updating clients. The group examples only manage custom groups and do not delete Pi-hole's built-in `Default` group.
+The clients module treats an omitted `groups` field as its default `[]`; unlike list updates, omission does not preserve existing client memberships. Provide the desired groups explicitly when updating clients. For both groups and clients, omitted or null `comment` preserves the existing comment during an update to another field; `comment: ""` clears it. Their examples only manage custom groups and do not delete Pi-hole's built-in `Default` group.
 
 API errors fail automatically; no custom `failed_when` is needed. This includes
 HTTP errors, API `error` responses, and `processed.errors` inside HTTP 200

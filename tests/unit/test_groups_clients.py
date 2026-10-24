@@ -59,6 +59,78 @@ def test_group_read_exceptions_fail_closed(harness):
     assert not result.payload['changed']
 
 
+@pytest.mark.parametrize('check', [False, True])
+@pytest.mark.parametrize(('input_comment', 'old_comment'), [('omitted', 'kept'), (None, 'kept'), ('omitted', None), ('omitted', 'missing')])
+def test_omitted_comment_is_preserved_on_other_field_update(harness, check, input_comment, old_comment):
+    kind = harness.kind
+    if kind == 'groups':
+        existing = dict(id=1, name='new', enabled=True)
+        if old_comment != 'missing':
+            existing['comment'] = old_comment
+        harness.client.group_management.get_groups.return_value = {'groups': [existing]}
+        item = dict(name='new', state='present', enabled=False)
+    else:
+        existing = dict(client='new', groups=[1])
+        if old_comment != 'missing':
+            existing['comment'] = old_comment
+        harness.client.group_management.get_groups.return_value = {'groups': [dict(id=1, name='Test')]}
+        harness.client.client_management.get_clients.return_value = {'clients': [existing]}
+        item = dict(name='new', state='present', groups=[])
+    if input_comment is None:
+        item['comment'] = None
+    expected_comment = None if old_comment == 'missing' else old_comment
+
+    result = harness.run([item], check=check)
+    rows = result.payload[kind]
+    assert result.payload['changed']
+    assert rows[0]['state'] == 'updated'
+    assert rows[0]['comment'] == expected_comment
+    api = getattr(harness.client, 'group_management' if kind == 'groups' else 'client_management')
+    update = getattr(api, 'update_group' if kind == 'groups' else 'update_client')
+    if check:
+        update.assert_not_called()
+    else:
+        assert update.call_args.kwargs['comment'] == expected_comment
+
+
+@pytest.mark.parametrize('check', [False, True])
+@pytest.mark.parametrize(('comment', 'expected'), [('', ''), ('replacement', 'replacement')])
+def test_explicit_comment_changes_are_reported_and_written(harness, check, comment, expected):
+    kind = harness.kind
+    if kind == 'groups':
+        harness.client.group_management.get_groups.return_value = {'groups': [dict(id=1, name='new', comment='old', enabled=True)]}
+        item = dict(name='new', state='present', comment=comment, enabled=False)
+    else:
+        harness.client.group_management.get_groups.return_value = {'groups': []}
+        harness.client.client_management.get_clients.return_value = {'clients': [dict(client='new', comment='old', groups=[])]}
+        item = dict(name='new', state='present', comment=comment)
+    result = harness.run([item], check=check)
+    assert result.payload['changed'] and result.payload[kind][0]['comment'] == expected
+    api = getattr(harness.client, 'group_management' if kind == 'groups' else 'client_management')
+    update = getattr(api, 'update_group' if kind == 'groups' else 'update_client')
+    if check:
+        update.assert_not_called()
+    else:
+        assert update.call_args.kwargs['comment'] == expected
+
+
+def test_omitted_comment_only_converges_without_write(harness):
+    kind = harness.kind
+    if kind == 'groups':
+        harness.client.group_management.get_groups.return_value = {
+            'groups': [dict(id=1, name='new', comment='keep me', enabled=True)]}
+        item = dict(name='new', state='present')
+    else:
+        harness.client.group_management.get_groups.return_value = {'groups': []}
+        harness.client.client_management.get_clients.return_value = {
+            'clients': [dict(client='new', comment='keep me', groups=[])]}
+        item = dict(name='new', state='present')
+    first = harness.run([item])
+    assert not first.payload['changed']
+    api = getattr(harness.client, 'group_management' if kind == 'groups' else 'client_management')
+    getattr(api, 'update_group' if kind == 'groups' else 'update_client').assert_not_called()
+
+
 def test_unknown_client_group_prevents_any_batch_writes(monkeypatch):
     from ansible_collections.hferreira23.pihole.plugins.modules import clients
 

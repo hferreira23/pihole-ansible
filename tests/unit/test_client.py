@@ -160,3 +160,30 @@ def test_logout_failure_does_not_mask_original_result(client):
     client.connection.session.responses = [Response(status=500, text='logout failed')]
     assert 'error' in client.close_session()
     assert client.connection.session.closed
+
+
+@pytest.mark.parametrize('timeout', [60, 300])
+def test_gravity_timeout_applies_only_to_its_request(client, timeout):
+    session = client.connection.session
+    client.actions.run_gravity(timeout=timeout)
+    client.group_management.get_groups()
+    client.close_session()
+    assert [call[2]['timeout'] for call in session.calls] == [10, timeout, 10, 10]
+    assert client.connection.connection_timeout == 10
+    assert session.calls[1][1].endswith('/api/action/gravity')
+
+
+def test_gravity_reauthentication_keeps_normal_auth_timeout(client):
+    session = client.connection.session
+    session.responses = [Response(status=401, payload={'error': 'expired'}), Response(payload={})]
+    client.actions.run_gravity(timeout=300)
+    client.close_session()
+    assert [call[2]['timeout'] for call in session.calls] == [10, 300, 10, 300, 10]
+    assert client.connection.connection_timeout == 10
+
+
+def test_unconfigured_action_timeout_uses_connection_default(client):
+    session = client.connection.session
+    client.actions.run_gravity()
+    client.actions.restart_dns()
+    assert all(call[2]['timeout'] == 10 for call in session.calls)

@@ -24,6 +24,8 @@ def harness(request, monkeypatch):
     """Run the real argument parser, replacing only I/O and module termination."""
     module = importlib.import_module('ansible_collections.hferreira23.pihole.plugins.modules.' + request.param)
     client = MagicMock()
+    client.connection.connection_timeout = 10
+    gravity_timeouts = []
     records = [copy.deepcopy(CURRENT)]
     client.group_management.get_groups.return_value = {'groups': [dict(id=1, name='Test')]}
     client.list_management.get_lists.side_effect = lambda **kwargs: {'lists': copy.deepcopy(records)}
@@ -37,6 +39,12 @@ def harness(request, monkeypatch):
     client.list_management.add_list.return_value = {'processed': {'errors': []}}
     client.list_management.delete_list.return_value = {}
     client.actions.run_gravity.return_value = 'arbitrary gravity output'
+
+    def run_gravity(timeout=None):
+        gravity_timeouts.append(timeout)
+        return client.actions.run_gravity.return_value
+
+    client.actions.run_gravity.side_effect = run_gravity
     factory = MagicMock(return_value=client)
     monkeypatch.setattr(lists, 'PiHole6Client', factory)
     monkeypatch.setattr(lists, 'HAS_PIHOLE6API', True)
@@ -61,7 +69,8 @@ def harness(request, monkeypatch):
         return result.value
 
     return SimpleNamespace(run=run, client=client, records=records, factory=factory,
-                           list_type='block' if request.param == 'block_list' else 'allow')
+                           list_type='block' if request.param == 'block_list' else 'allow',
+                           gravity_timeouts=gravity_timeouts)
 
 
 def entry(**kwargs):
@@ -180,7 +189,8 @@ def test_gravity_once_for_mixed_batch(harness):
     result = harness.run([entry(comment='new'), dict(address='other', state='present')], update_gravity=True)
     assert not result.failed and result.payload['changed']
     harness.client.actions.run_gravity.assert_called_once()
-    assert harness.client.connection.connection_timeout == 60
+    assert harness.gravity_timeouts == [60]
+    assert harness.client.connection.connection_timeout == 10
 
 
 def test_delete_success_runs_gravity_once(harness):
@@ -207,11 +217,13 @@ def test_empty_batch_does_not_fall_back_to_legacy(harness):
 def test_partial_batch_error_retains_prior_changes(harness):
     response = {'processed': {'errors': ['rejected']}}
     harness.client.list_management.add_list.return_value = response
-    result = harness.run([entry(comment='new'), dict(address='other', state='present')], update_gravity=True)
+    result = harness.run([entry(comment='new'), dict(address='other', state='present')],
+                         update_gravity=True, gravity_timeout=300)
     assert result.failed and result.payload['changed']
     assert result.payload['result'][0]['action'] == 'updated'
     assert result.payload['response'] == response
     harness.client.actions.run_gravity.assert_not_called()
+    assert harness.client.connection.connection_timeout == 10
 
 
 def test_gravity_error_fails_and_keeps_mutation_changed(harness):
@@ -226,3 +238,71 @@ def test_tls_options_reach_client(harness):
     assert not result.failed
     harness.factory.assert_called_once_with('https://hole', 'secret', validate_certs=False,
                                             ca_path='/private-ca.pem')
+
+
+@pytest.mark.parametrize('legacy', [False, True])
+@pytest.mark.parametrize('timeout', [300, '300'])
+def test_custom_gravity_timeout_only_applies_to_gravity(harness, legacy, timeout):
+    mutation_timeouts = []
+
+    def update(address, **kwargs):
+        mutation_timeouts.append(harness.client.connection.connection_timeout)
+        return {}
+
+    harness.client.list_management.update_list.side_effect = update
+    params = dict(update_gravity=True, gravity_timeout=timeout)
+    result = (harness.run(address=ADDRESS, state='present', groups=[], **params) if legacy
+              else harness.run([entry(groups=[])], **params))
+    assert not result.failed and result.payload['changed']
+    assert mutation_timeouts == [10]
+    assert harness.gravity_timeouts == [300]
+    assert harness.client.connection.connection_timeout == 10
+
+
+@pytest.mark.parametrize('timeout', [0, -1, 'not-a-number'])
+def test_invalid_gravity_timeout_fails_before_connecting(harness, timeout):
+    result = harness.run([entry(groups=[])], update_gravity=True, gravity_timeout=timeout)
+    assert result.failed and 'gravity_timeout' in result.payload['msg']
+    if isinstance(timeout, int):
+        assert 'positive' in result.payload['msg']
+    assert not result.payload.get('changed', False)
+    harness.factory.assert_not_called()
+
+
+@pytest.mark.parametrize('params,desired', [
+    (dict(update_gravity=False), entry(groups=[])),
+    (dict(update_gravity=True), entry()),
+    (dict(update_gravity=True, check=True), entry(groups=[])),
+])
+def test_unused_gravity_timeout_does_not_change_connection_timeout(harness, params, desired):
+    result = harness.run([desired], gravity_timeout=300, **params)
+    assert not result.failed
+    assert harness.gravity_timeouts == []
+    assert harness.client.connection.connection_timeout == 10
+
+
+def test_timeout_failure_preserves_connection_and_retains_list_changes(harness):
+    import requests
+
+    def timeout(**kwargs):
+        assert kwargs['timeout'] == 300
+        assert harness.client.connection.connection_timeout == 10
+        raise requests.exceptions.ReadTimeout('gravity timed out')
+
+    harness.client.actions.run_gravity.side_effect = timeout
+    result = harness.run([entry(groups=[])], update_gravity=True, gravity_timeout=300)
+    assert result.failed and result.payload['changed']
+    assert 'gravity timed out' in result.payload['msg']
+    assert result.payload['result'][0]['action'] == 'updated'
+    harness.client.actions.run_gravity.assert_called_once()
+    assert harness.client.connection.connection_timeout == 10
+    harness.client.close_session.assert_called_once()
+
+
+def test_api_gravity_failure_preserves_connection_timeout(harness):
+    harness.client.actions.run_gravity.return_value = {'processed': {'errors': ['failed']}}
+    result = harness.run([entry(groups=[])], update_gravity=True, gravity_timeout=300)
+    assert result.failed and result.payload['changed']
+    assert result.payload['response'] == {'processed': {'errors': ['failed']}}
+    assert harness.gravity_timeouts == [300]
+    assert harness.client.connection.connection_timeout == 10

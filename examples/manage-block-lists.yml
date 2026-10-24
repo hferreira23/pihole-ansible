@@ -15,6 +15,7 @@
     - name: Add, update, and remove block lists in one batch
       hferreira23.pihole.block_list:
         update_gravity: true
+        gravity_timeout: 300  # Optional; defaults to 60 seconds for gravity only.
         lists:
           # Reserved example.com placeholder: replace with a real list URL.
           - address: "https://example.com/blocklist.txt"

@@ -31,6 +31,7 @@ def list_argument_spec():
         validate_certs=dict(type='bool', default=True),
         ca_path=dict(type='path'),
         update_gravity=dict(type='bool', default=False),
+        gravity_timeout=dict(type='int', default=60),
     )
 
 
@@ -91,8 +92,7 @@ def reconcile_lists(module, client, list_type, result):
         result['result'].append(entry)
 
     if module.params['update_gravity'] and result['changed'] and not module.check_mode:
-        client.connection.connection_timeout = 60
-        response = client.actions.run_gravity()
+        response = client.actions.run_gravity(timeout=module.params['gravity_timeout'])
         validate_response(response, 'run gravity')
         result['result'].append(dict(action='run_gravity', response=response))
 
@@ -103,6 +103,8 @@ def run_module(list_type):
         required_one_of=[['lists', 'address']], required_by={'address': ['state']},
     )
     result = dict(changed=False, result=[])
+    if module.params['gravity_timeout'] <= 0:
+        module.fail_json(msg='gravity_timeout must be a positive number of seconds', **result)
     if not HAS_PIHOLE6API:
         module.fail_json(msg='The pihole6api module is required', **result)
 

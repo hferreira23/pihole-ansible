@@ -152,6 +152,13 @@ An API rejection can have `status_code: 200`. Earlier successful operations in a
 `changed: true`. `update_gravity: true` runs gravity once after a successful
 batch with actual list changes, never on convergence or in check mode.
 
+Both list modules accept `gravity_timeout` as a positive integer in seconds
+(default: `60`). Set it higher for larger gravity runs. It applies only to the
+gravity request; authentication, normal reads/writes, and logout retain their
+normal timeout. A timeout fails the task without rolling back earlier changes
+or cancelling server-side gravity. This is a Requests timeout, not a total
+runtime deadline.
+
 All modules verify TLS certificates **including authentication**, using a
 collection-owned transport with the `pihole6api` endpoint wrappers. This does
 not modify the separately installed Python package. For a private CA, set

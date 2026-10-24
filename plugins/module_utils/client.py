@@ -26,6 +26,10 @@ class PiHoleAPIError(Exception):
 if HAS_PIHOLE6API:
     from pihole6api import client as _api
 
+    class _Actions(_api.PiHole6Actions):
+        def run_gravity(self, timeout=None):
+            return self.connection.post("action/gravity", timeout=timeout)
+
     class _SecureConnection:
         def __init__(self, base_url, password, validate_certs=True, ca_path=None):
             self.base_url = base_url.rstrip("/") + "/api/"
@@ -53,9 +57,10 @@ if HAS_PIHOLE6API:
             response = self.session.post(self.base_url + "auth", json={"password": self.password}, verify=self.verify, timeout=self.connection_timeout)
             self._auth_response(response)
 
-        def _do_call(self, method, endpoint, params=None, data=None, files=None, is_binary=False):
+        def _do_call(self, method, endpoint, params=None, data=None, files=None, is_binary=False, timeout=None):
             headers = {"X-FTL-SID": self.session_id, "X-FTL-CSRF": self.csrf_token}
-            kwargs = dict(headers=headers, params=params, files=files, verify=self.verify, timeout=self.connection_timeout)
+            kwargs = dict(headers=headers, params=params, files=files, verify=self.verify,
+                          timeout=self.connection_timeout if timeout is None else timeout)
             if files:
                 kwargs["data"] = data
             elif data is not None:
@@ -101,8 +106,8 @@ if HAS_PIHOLE6API:
         def get(self, endpoint, params=None, is_binary=False):
             return self._do_call("GET", endpoint, params=params, is_binary=is_binary)
 
-        def post(self, endpoint, data=None, files=None, params=None):
-            return self._do_call("POST", endpoint, params=params, data=data, files=files)
+        def post(self, endpoint, data=None, files=None, params=None, timeout=None):
+            return self._do_call("POST", endpoint, params=params, data=data, files=files, timeout=timeout)
 
         def put(self, endpoint, data=None, params=None):
             return self._do_call("PUT", endpoint, params=params, data=data)
@@ -132,7 +137,7 @@ if HAS_PIHOLE6API:
                               ("group_management", _api.PiHole6GroupManagement), ("domain_management", _api.PiHole6DomainManagement),
                               ("client_management", _api.PiHole6ClientManagement), ("list_management", _api.PiHole6ListManagement),
                               ("ftl_info", _api.PiHole6FtlInfo), ("config", _api.PiHole6Configuration),
-                              ("network_info", _api.PiHole6NetworkInfo), ("actions", _api.PiHole6Actions), ("dhcp", _api.PiHole6Dhcp)):
+                              ("network_info", _api.PiHole6NetworkInfo), ("actions", _Actions), ("dhcp", _api.PiHole6Dhcp)):
                 setattr(self, attr, cls(self.connection))
 else:
     class PiHole6Client:

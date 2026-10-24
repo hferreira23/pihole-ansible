@@ -51,6 +51,12 @@ most once per module invocation—not once for the whole playbook. It does not r
 on convergence, in check mode, or after a failed batch. Re-running a management
 playbook with the same desired state should report no list changes or gravity run.
 
+For larger deployments, set `gravity_timeout: 300` on either list module. It must
+be a positive integer and defaults to 60 seconds. It affects only the gravity
+request, not authentication, list reads/writes, or logout. This is a Requests
+timeout, not a total runtime deadline; timing out does not cancel gravity on the
+server or roll back successful list changes. No dedicated gravity module is added.
+
 `preview-list-changes.yml` sets `check_mode: true` on the **task** and displays
 predicted actions without list writes or gravity. Authentication and reads still
 need a reachable API, working credentials, and valid group names. It does not

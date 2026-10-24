@@ -1,0 +1,36 @@
+---
+- name: Preview Pi-hole list changes without writing
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    ansible_python_interpreter: "{{ ansible_playbook_python }}"
+  module_defaults:
+    hferreira23.pihole.block_list:
+      url: "{{ pihole_url }}"
+      password: "{{ pihole_password }}"
+      validate_certs: "{{ pihole_validate_certs | default(true) }}"
+      ca_path: "{{ pihole_ca_path | default(omit) }}"
+  tasks:
+    - name: Predict list additions, field updates, membership clearing, and deletions
+      hferreira23.pihole.block_list:
+        update_gravity: true  # Never runs when the task is in check mode.
+        lists:
+          # Reserved example.com placeholder: adapt before use.
+          - address: "https://example.com/preview-list.txt"
+            state: present
+            comment: Preview only
+            groups: [Default]
+          - address: "https://example.com/existing-list.txt"
+            state: present
+            comment: Updated description
+            groups: []
+            enabled: false
+          - address: "https://example.com/retired-list.txt"
+            state: absent
+      check_mode: true
+      register: preview_result
+
+    - name: Display predicted actions
+      ansible.builtin.debug:
+        var: preview_result.result

@@ -1,26 +1,31 @@
 ---
-- name: Manage PiHole groups
+- name: Manage custom Pi-hole groups
   hosts: localhost
+  connection: local
   gather_facts: false
+  vars:
+    ansible_python_interpreter: "{{ ansible_playbook_python }}"
+  module_defaults:
+    hferreira23.pihole.groups:
+      url: "{{ pihole_url }}"
+      password: "{{ pihole_password }}"
+      validate_certs: "{{ pihole_validate_certs | default(true) }}"
+      ca_path: "{{ pihole_ca_path | default(omit) }}"
   tasks:
-    - name: Manage PiHole groups
-      sbarbett.pihole.groups:
+    - name: Create or update custom groups without touching built-in Default
+      hferreira23.pihole.groups:
         groups:
-          - name: PiHole Default
-            comment: The default group
-            state: absent
           - name: Cameras
-            enabled: true
+            comment: Camera devices
+            state: present
+          - name: IoT
+            comment: IoT VLAN
+            enabled: false
+            state: present
+          - name: RetiredLab
             state: absent
-          - name: Default2
-            state: absent
-          - name: IOT
-            comment: IOT VLAN
-            state: absent
-        url: "https://your-pihole.example.com"
-        password: "{{ pihole_password }}"
       register: group_result
 
-    - name: Display group result
+    - name: Show group results
       ansible.builtin.debug:
         var: group_result

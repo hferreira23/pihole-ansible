@@ -4,7 +4,7 @@
   gather_facts: false
   tasks:
     - name: Change the PiHole listening mode
-      sbarbett.pihole.listening_mode:
+      hferreira23.pihole.listening_mode:
         # Supported values: "all", "bind", "local" or single
         mode: "all"
         url: "https://your-pihole.example.com"

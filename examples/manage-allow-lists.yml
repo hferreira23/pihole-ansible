@@ -1,28 +1,39 @@
 ---
-- name: Manage PiHole allow lists
+- name: Manage Pi-hole allow lists
   hosts: localhost
+  connection: local
   gather_facts: false
+  vars:
+    ansible_python_interpreter: "{{ ansible_playbook_python }}"
+  module_defaults:
+    hferreira23.pihole.allow_list:
+      url: "{{ pihole_url }}"
+      password: "{{ pihole_password }}"
+      validate_certs: "{{ pihole_validate_certs | default(true) }}"
+      ca_path: "{{ pihole_ca_path | default(omit) }}"
   tasks:
-    - name: Manage allow lists with batch processing
-      sbarbett.pihole.allow_list:
+    - name: Add, update, and remove allow lists in one batch
+      hferreira23.pihole.allow_list:
+        update_gravity: true
         lists:
-          - address: "https://example.com/whitelist1.txt"
+          # Reserved example.com placeholder: replace with a real list URL.
+          - address: "https://example.com/allowlist.txt"
+            state: present
+            comment: Managed allow list
+            groups: [0]  # An unquoted integer ID, not the string "0".
+          # Omission preserves existing memberships, even when a comment changes.
+          - address: "https://example.com/existing-allowlist.txt"
+            state: present
+            comment: Updated description
+          # Empty groups explicitly clears current memberships.
+          - address: "https://example.com/limited-allowlist.txt"
+            state: present
+            groups: []
+            enabled: false
+          - address: "https://example.com/retired-allowlist.txt"
             state: absent
-            comment: "Example whitelist 1"
-            groups:
-              - Default
-              - test
-          - address: "https://example.com/whitelist2.txt"
-            state: absent
-            comment: "Example whitelist 2"
-            groups:
-              - Default
-          - address: "https://example.com/whitelist3.txt"
-            state: absent
-        url: "https://your-pihole.example.com"
-        password: "{{ pihole_password }}"
       register: allow_list_result
 
-    - name: Display allow list result
+    - name: Show per-list results
       ansible.builtin.debug:
         var: allow_list_result

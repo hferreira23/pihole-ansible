@@ -3,9 +3,9 @@
 # this is litteraly a clone of local_a_record.py but for AAAA records. pi-hole does not disgguish between A and AAAA records in the API, so this is just a copy of the other module with AAAA in the name
 
 from ansible.module_utils.basic import AnsibleModule
-try:
-    from pihole6api import PiHole6Client
-except ImportError:
+from ansible_collections.hferreira23.pihole.plugins.module_utils.client import PiHole6Client, HAS_PIHOLE6API
+
+if not HAS_PIHOLE6API:
     raise ImportError("The 'pihole6api' Python module is required. Run 'pip install pihole6api' to install it.")
 
 DOCUMENTATION = r'''
@@ -14,6 +14,7 @@ module: local_aaaa_record
 short_description: Manage Pi-hole local AAAA records via pihole v6 API.
 description:
     - This module adds or removes local AAAA records on a Pi-hole instance using the piholev6api Python client.
+extends_documentation_fragment: [hferreira23.pihole.connection]
 options:
     host:
         description:
@@ -27,7 +28,7 @@ options:
         type: str
     state:
         description:
-            - Whether the A record should be present or absent.
+            - Whether the AAAA record should be present or absent.
         required: true
         type: str
         choices: ['present', 'absent']
@@ -47,8 +48,8 @@ author:
 '''
 
 EXAMPLES = r'''
-- name: Create test.example.com AAAAA record
-  sbarbett.pihole.local_aaaa_record:
+- name: Create test.example.com AAAA record
+  hferreira23.pihole.local_aaaa_record:
     host: test.example.com
     ip: 2001:db8::1
     state: present
@@ -56,7 +57,7 @@ EXAMPLES = r'''
     password: "{{ pihole_password }}"
 
 - name: Delete test.example.com AAAA record
-  sbarbett.pihole.local_aaaa_record:
+  hferreira23.pihole.local_aaaa_record:
     host: test.example.com
     ip: 2001:db8::1
     state: absent
@@ -81,7 +82,9 @@ def run_module():
         ip=dict(type='str', required=True),
         state=dict(type='str', choices=['present', 'absent'], required=True),
         password=dict(type='str', required=True, no_log=True),
-        url=dict(type='str', required=True)
+        url=dict(type='str', required=True),
+        validate_certs=dict(type='bool', default=True),
+        ca_path=dict(type='path'),
     )
 
     result = dict(
@@ -103,8 +106,10 @@ def run_module():
     if module.check_mode:
         module.exit_json(**result)
 
+    client = None
     try:
-        client = PiHole6Client(url, password)
+        client = PiHole6Client(url, password, validate_certs=module.params['validate_certs'],
+                              ca_path=module.params['ca_path'])
         current_config = client.config.get_config_section("dns/hosts")
         hosts_list = current_config.get("config", {}).get("dns", {}).get("hosts", [])
 

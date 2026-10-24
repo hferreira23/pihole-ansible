@@ -4,7 +4,7 @@
   gather_facts: false
   tasks:
     - name: Delete test.example.com A record
-      sbarbett.pihole.local_a_record:
+      hferreira23.pihole.local_a_record:
         host: test.example.com
         ip: 127.0.0.1
         state: absent
@@ -12,7 +12,7 @@
         password: "{{ pihole_password }}"
 
     - name: Delete test.example.com AAAA record
-      sbarbett.pihole.local_a_record:
+      hferreira23.pihole.local_a_record:
         host: test.example.com
         ip: 2001:db8::1
         state: absent

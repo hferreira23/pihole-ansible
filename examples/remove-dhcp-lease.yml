@@ -4,7 +4,7 @@
   gather_facts: false
   tasks:
     - name: Remove DHCP lease with the following parameters
-      sbarbett.pihole.dhcp_remove_lease:
+      hferreira23.pihole.dhcp_remove_lease:
         url: "https://your-pihole.example.com"
         password: "{{ pihole_password }}"
         # At least one of the following parameters is required.

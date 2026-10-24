@@ -1,0 +1,30 @@
+---
+- name: Demonstrate visible Pi-hole list API failures
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    ansible_python_interpreter: "{{ ansible_playbook_python }}"
+  module_defaults:
+    hferreira23.pihole.block_list:
+      url: "{{ pihole_url }}"
+      password: "{{ pihole_password }}"
+      validate_certs: "{{ pihole_validate_certs | default(true) }}"
+      ca_path: "{{ pihole_ca_path | default(omit) }}"
+  tasks:
+    # This is a normal write, not a guaranteed failure. Adapt the request to
+    # reproduce a rejected write; an example.com feed URL is not invalid syntax.
+    - name: Keep rejected writes visible and preserve task failure
+      block:
+        - name: Submit a list update (replace the placeholder feed URL)
+          hferreira23.pihole.block_list:
+            lists:
+              - address: "https://example.com/error-demo.txt"
+                state: present
+      rescue:
+        - name: Show original module error and any returned API details
+          ansible.builtin.debug:
+            var: ansible_failed_result
+        - name: Preserve failure status after displaying details
+          ansible.builtin.fail:
+            msg: "The Pi-hole API operation failed; see ansible_failed_result above."

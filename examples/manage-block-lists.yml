@@ -1,28 +1,40 @@
 ---
-- name: Manage PiHole block lists
+- name: Manage Pi-hole block lists
   hosts: localhost
+  connection: local
   gather_facts: false
+  vars:
+    ansible_python_interpreter: "{{ ansible_playbook_python }}"
+  module_defaults:
+    hferreira23.pihole.block_list:
+      url: "{{ pihole_url }}"
+      password: "{{ pihole_password }}"
+      validate_certs: "{{ pihole_validate_certs | default(true) }}"
+      ca_path: "{{ pihole_ca_path | default(omit) }}"
   tasks:
-    - name: Manage block lists with batch processing
-      sbarbett.pihole.block_list:
+    - name: Add, update, and remove block lists in one batch
+      hferreira23.pihole.block_list:
+        update_gravity: true
         lists:
-          - address: "https://example.com/blocklist1.txt"
+          # Reserved example.com placeholder: replace with a real list URL.
+          - address: "https://example.com/blocklist.txt"
+            state: present
+            comment: Managed block list
+            groups: [Default]
+            enabled: true
+          # Explicit [] removes all memberships; disabled lists stay disabled.
+          - address: "https://example.com/disabled-blocklist.txt"
+            state: present
+            groups: []
+            enabled: false
+          # Omitted groups preserve existing memberships during field updates.
+          - address: "https://example.com/existing-blocklist.txt"
+            state: present
+            comment: Updated description
+          - address: "https://example.com/retired-blocklist.txt"
             state: absent
-            comment: "Example block list 1"
-            groups:
-              - Default
-              - test
-          - address: "https://example.com/blocklist2.txt"
-            state: absent
-            comment: "Example block list 2"
-            groups:
-              - Default
-          - address: "https://example.com/blocklist3.txt"
-            state: absent
-        url: "https://your-pihole.example.com"
-        password: "{{ pihole_password }}"
       register: block_list_result
 
-    - name: Display block list result
+    - name: Show per-list results
       ansible.builtin.debug:
         var: block_list_result

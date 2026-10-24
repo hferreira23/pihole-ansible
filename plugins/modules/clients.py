@@ -48,6 +48,8 @@ options:
       comment:
         description:
           - Comment for the client.
+          - When updating, omission or C(null) preserves the existing comment.
+          - Use C('') to clear the comment.
         type: str
         required: false
       groups:
@@ -117,6 +119,16 @@ EXAMPLES = r'''
         groups: [Default]
   check_mode: true
   register: client_preview
+
+- name: Change group assignment while preserving the client's comment
+  hferreira23.pihole.clients:
+    url: "{{ pihole_url }}"
+    password: "{{ pihole_password }}"
+    clients:
+      - name: 192.168.40.0/24
+        state: present
+        groups: [Default]
+        # Omit comment to preserve it; comment: "" clears it.
 '''
 
 RETURN = r'''
@@ -325,6 +337,7 @@ def main():
                 else:
                     # Check if update is needed
                     existing = existing_clients[name]
+                    effective_comment = existing.get('comment') if comment is None else comment
                     update_needed = False
                     
                     if comment is not None and existing.get('comment') != comment:
@@ -338,12 +351,12 @@ def main():
                     
                     if update_needed:
                         if not module.check_mode:
-                            response = update_client(client, name, comment, group_ids)
+                            response = update_client(client, name, effective_comment, group_ids)
                             validate_response(response, f'update client {name}')
                         result['changed'] = True
                         result['clients'].append({
                             'name': name,
-                            'comment': comment,
+                            'comment': effective_comment,
                             'groups': group_names,
                             'state': 'updated'
                         })

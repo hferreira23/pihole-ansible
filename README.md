@@ -221,6 +221,8 @@ values. In particular:
 
 - `groups` omitted preserves existing **list** memberships; `groups: []` clears
   them. Client memberships still default to `[]` when omitted.
+- For groups and clients, omitted or null `comment` preserves an existing comment
+  during updates; `comment: ""` clears it.
 - `enabled` defaults to `true`; explicitly pass `false` to keep a list disabled.
 - Check mode authenticates and reads current state, but skips list writes and
   gravity. Groups referenced by name must already exist, even if an earlier

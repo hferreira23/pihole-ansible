@@ -2,10 +2,9 @@
 
 import datetime
 import ipaddress
-import json
 import ssl
 import threading
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from http.server import ThreadingHTTPServer
 
 import pytest
 import requests
@@ -19,7 +18,7 @@ from plugins.module_utils.client import PiHole6Client
 
 
 @pytest.fixture
-def endpoint(tmp_path, monkeypatch):
+def endpoint(tmp_path, monkeypatch, json_http_handler):
     monkeypatch.setenv('NO_PROXY', '127.0.0.1')
     key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
     name = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, 'localhost')])
@@ -38,18 +37,7 @@ def endpoint(tmp_path, monkeypatch):
                          serialization.PrivateFormat.PKCS8, serialization.NoEncryption()))
     calls = []
 
-    class Handler(BaseHTTPRequestHandler):
-        def log_message(self, *args):
-            pass
-
-        def respond(self, data):
-            body = json.dumps(data).encode()
-            self.send_response(200)
-            self.send_header('Content-Type', 'application/json')
-            self.send_header('Content-Length', str(len(body)))
-            self.end_headers()
-            self.wfile.write(body)
-
+    class Handler(json_http_handler):
         def do_POST(self):
             calls.append(self.path)
             self.rfile.read(int(self.headers.get('Content-Length', 0)))

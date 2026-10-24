@@ -49,6 +49,8 @@ options:
       comment:
         description:
           - Comment for the group.
+          - When updating, omission or C(null) preserves the existing comment.
+          - Use C('') to clear the comment.
         type: str
         required: false
       enabled:
@@ -103,6 +105,16 @@ EXAMPLES = r'''
         enabled: false
   check_mode: true
   register: group_preview
+
+- name: Update enabled state while preserving the existing comment
+  hferreira23.pihole.groups:
+    url: "{{ pihole_url }}"
+    password: "{{ pihole_password }}"
+    groups:
+      - name: Cameras
+        state: present
+        enabled: true
+        # Omit comment to preserve it; comment: "" clears it.
 '''
 
 RETURN = r'''
@@ -284,9 +296,10 @@ def main():
                 else:
                     # Check if update is needed
                     existing = existing_groups[name]
+                    effective_comment = existing.get('comment') if comment is None else comment
                     update_needed = False
                     
-                    if comment is not None and existing['comment'] != comment:
+                    if comment is not None and existing.get('comment') != comment:
                         update_needed = True
                     
                     if existing['enabled'] != enabled:
@@ -294,12 +307,12 @@ def main():
                     
                     if update_needed:
                         if not module.check_mode:
-                            response = update_group(client, name, comment, enabled)
+                            response = update_group(client, name, effective_comment, enabled)
                             validate_response(response, f'update group {name}')
                         result['changed'] = True
                         result['groups'].append({
                             'name': name,
-                            'comment': comment,
+                            'comment': effective_comment,
                             'enabled': enabled,
                             'state': 'updated'
                         })
@@ -307,7 +320,7 @@ def main():
                         # No change needed
                         result['groups'].append({
                             'name': name,
-                            'comment': existing['comment'],
+                            'comment': existing.get('comment'),
                             'enabled': existing['enabled'],
                             'state': 'unchanged'
                         })

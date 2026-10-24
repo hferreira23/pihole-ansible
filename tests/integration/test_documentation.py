@@ -96,6 +96,14 @@ def test_human_readable_help_renders_new_features(collection_docs, name):
     assert 'O(' not in output and 'RV(' not in output
 
 
+@pytest.mark.parametrize('name', ('groups', 'clients'))
+def test_packaged_comment_docs_explain_preserve_and_clear(collection_docs, name):
+    docs, _ = collection_docs
+    description = docs['hferreira23.pihole.' + name]['doc']['options'][name]['suboptions']['comment']['description']
+    rendered = ' '.join(description)
+    assert 'preserves' in rendered and "C('')" in rendered
+
+
 @pytest.mark.parametrize('name', ('allow_list', 'block_list', 'groups', 'clients'))
 def test_task_snippet_includes_shared_tls_options(collection_docs, name):
     _, run = collection_docs

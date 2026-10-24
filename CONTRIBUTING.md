@@ -44,12 +44,13 @@ version. The dependency is not source in this repository. Do not edit a
 site-packages copy or the system Python environment to implement a collection fix.
 
 Ansible requires version 2.19+ (`meta/runtime.yml`). The single CI test target
-uses the latest stable Python (`3.x`) and unpinned `ansible-core`, explicitly
-upgraded on each run. Following Python releases avoids silently holding Ansible
-back when a newer ansible-core requires newer Python. There is no older-version
-compatibility job; this does not change the collection's declared minimum. The pip
+uses supported Python 3.14 and unpinned `ansible-core`, explicitly upgraded on
+each run. Advance the Python minor only when Ansible supports it: rolling `3.x`
+can select a newly released interpreter before Ansible works with it.
+There is no older-version compatibility job; this does not change the collection's
+declared minimum. The pip
 cache stores downloads, not an installed environment, so it does not freeze the
-latest target. Python setup also checks for the newest matching stable release
+latest target. Python setup also checks for the newest matching 3.14 patch release
 rather than relying only on the runner's preinstalled versions.
 To reproduce the CI dependency selection locally:
 

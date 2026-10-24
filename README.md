@@ -245,7 +245,7 @@ no running Pi-hole instance is required. Documentation tests build and install
 the collection into a temporary directory, exercise text and JSON `ansible-doc`
 output for the new features, compare list options with the argument specification,
 and syntax-check the example playbooks. CI defaults to the latest stable
-ansible-core on latest stable Python, explicitly upgraded on every test run;
+ansible-core on supported Python 3.14, explicitly upgraded on every test run;
 there is no older-version compatibility job. Draft PRs and changes limited to
 guides, historical roles, or unrelated automation skip the expensive tests.
 Relevant PRs and pushes to `main` run validation; manual dispatch always runs it.

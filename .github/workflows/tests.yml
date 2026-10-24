@@ -48,7 +48,8 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
-          python-version: "3.x"
+          # Ansible currently supports 3.14, not every newly released Python.
+          python-version: "3.14"
           check-latest: true
           cache: pip
           cache-dependency-path: tests/requirements.txt

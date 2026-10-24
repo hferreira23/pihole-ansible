@@ -88,8 +88,10 @@ git diff --check
 ```
 
 Use Python 3.13+ for the documented development setup and Ansible 2.19+ as required
-by `meta/runtime.yml`. CI tests only the latest stable ansible-core on latest
-stable Python, explicitly upgrading unpinned `ansible-core` on every test run.
+by `meta/runtime.yml`. CI tests only the latest stable ansible-core on supported
+Python 3.14, explicitly upgrading unpinned `ansible-core` on every test run.
+Advance Python only when Ansible supports it; rolling `3.x` can select an
+unsupported interpreter before Ansible is ready for it.
 There is no 2.19 compatibility job. Do not pin/cap the test target or skip its
 installation because of a pip-cache hit. A lightweight changed-file gate skips
 draft PRs and irrelevant-only changes without leaving a required check pending;

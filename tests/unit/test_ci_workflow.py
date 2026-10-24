@@ -70,7 +70,8 @@ def test_cache_does_not_freeze_python_or_ansible(workflow):
     steps = workflow['jobs']['unit']['steps']
     setup = next(step for step in steps if step.get('uses', '').startswith('actions/setup-python@'))
     assert setup['with']['cache'] == 'pip'
-    assert setup['with']['python-version'] == '3.x'
+    # Rolling 3.x can select a Python newer than Ansible supports.
+    assert setup['with']['python-version'] == '3.14'
     assert setup['with']['check-latest'] == 'true'
     assert setup['with']['cache-dependency-path'] == 'tests/requirements.txt'
     install = next(step for step in steps if step['name'] == 'Install test dependencies')

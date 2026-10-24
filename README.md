@@ -257,7 +257,8 @@ and syntax-check the example playbooks. CI defaults to the latest stable
 ansible-core on supported Python 3.14, explicitly upgraded on every test run;
 there is no older-version compatibility job. Draft PRs and changes limited to
 guides, historical roles, or unrelated automation skip the expensive tests.
-Relevant PRs and pushes to `main` run validation; manual dispatch always runs it.
+Relevant PRs run validation; pushes to `main` or feature branches do not rerun it.
+Explicit manual dispatch remains available and always runs validation.
 The required test check is still reported for skipped changes. JUnit reports are
 retained for 14 days.
 

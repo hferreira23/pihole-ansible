@@ -16,6 +16,7 @@ tags:
 dependencies: {}
 repository: https://github.com/hferreira23/pihole-ansible
 build_ignore:
+  - pihole-creds
   - roles
   - dist
   - .ansible

@@ -1,6 +1,7 @@
 """Pi-hole API client with collection-controlled TLS and error handling."""
 
 import warnings
+from urllib.parse import quote
 
 try:
     import requests
@@ -29,6 +30,30 @@ if HAS_PIHOLE6API:
     class _Actions(_api.PiHole6Actions):
         def run_gravity(self, timeout=None):
             return self.connection.post("action/gravity", timeout=timeout)
+
+    class _Domains(_api.PiHole6DomainManagement):
+        """Complete reads and URI-safe identities, including regular expressions."""
+
+        def get_domains(self):
+            return self.connection.get('domains')
+
+        @staticmethod
+        def _encode_domain(domain):
+            # quote() deliberately leaves unreserved dots alone. Encode whole
+            # dot segments before Requests normalizes them into a parent path.
+            return domain.replace('.', '%2E') if domain in ('.', '..') else quote(domain, safe='')
+
+        def get_domain(self, domain, domain_type, kind):
+            return super().get_domain(self._encode_domain(domain), domain_type, kind)
+
+        def update_domain(self, domain, domain_type, kind, new_type=None, new_kind=None,
+                          comment=None, groups=None, enabled=True):
+            return super().update_domain(self._encode_domain(domain), domain_type, kind,
+                                         new_type=new_type, new_kind=new_kind,
+                                         comment=comment, groups=groups, enabled=enabled)
+
+        def delete_domain(self, domain, domain_type, kind):
+            return super().delete_domain(self._encode_domain(domain), domain_type, kind)
 
     class _SecureConnection:
         def __init__(self, base_url, password, validate_certs=True, ca_path=None):
@@ -134,7 +159,7 @@ if HAS_PIHOLE6API:
         def __init__(self, base_url, password, validate_certs=True, ca_path=None):
             self.connection = _SecureConnection(base_url, password, validate_certs, ca_path)
             for attr, cls in (("metrics", _api.PiHole6Metrics), ("dns_control", _api.PiHole6DnsControl),
-                              ("group_management", _api.PiHole6GroupManagement), ("domain_management", _api.PiHole6DomainManagement),
+                              ("group_management", _api.PiHole6GroupManagement), ("domain_management", _Domains),
                               ("client_management", _api.PiHole6ClientManagement), ("list_management", _api.PiHole6ListManagement),
                               ("ftl_info", _api.PiHole6FtlInfo), ("config", _api.PiHole6Configuration),
                               ("network_info", _api.PiHole6NetworkInfo), ("actions", _Actions), ("dhcp", _api.PiHole6Dhcp)):

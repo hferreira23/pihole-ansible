@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.0](https://github.com/hferreira23/pihole-ansible/compare/1.1.0...1.2.0) (2026-10-26)
+
+
+### Features
+
+* **domains:** manage individual allow and deny rules ([#25](https://github.com/hferreira23/pihole-ansible/issues/25)) ([a2d610f](https://github.com/hferreira23/pihole-ansible/commit/a2d610fdf7517b92ab5aefaea113f3c45edda3fb))
+
 ## [1.1.0](https://github.com/hferreira23/pihole-ansible/compare/1.0.0...1.1.0) (2026-10-24)
 
 

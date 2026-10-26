@@ -3,6 +3,9 @@
 .ansible/*
 .vscode
 
+# Local live-test credentials; never commit or package.
+/pihole-creds
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

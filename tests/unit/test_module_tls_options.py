@@ -16,6 +16,7 @@ class ModuleFailure(BaseException):
     ('allow_list', dict(address='https://example.com/allow', state='present')),
     ('groups', dict(groups=[dict(name='Test', state='present')])),
     ('clients', dict(clients=[dict(name='192.0.2.1', state='present')])),
+    ('domains', dict(domains=[dict(domain='example.com', type='deny')])),
     ('local_a_record', dict(host='example.com', ip='192.0.2.1', state='present')),
     ('local_aaaa_record', dict(host='example.com', ip='2001:db8::1', state='present')),
     ('local_cname', dict(host='alias.example.com', target='example.com', state='present')),
@@ -33,6 +34,8 @@ def test_tls_options_and_safe_auth_failure(monkeypatch, name, params, tls, expec
     target = module
     if name in ('allow_list', 'block_list'):
         target = importlib.import_module('ansible_collections.hferreira23.pihole.plugins.module_utils.lists')
+    elif name == 'domains':
+        target = importlib.import_module('ansible_collections.hferreira23.pihole.plugins.module_utils.domains')
     factory = MagicMock(side_effect=requests.exceptions.SSLError('untrusted certificate'))
     monkeypatch.setattr(target, 'PiHole6Client', factory)
     args = dict(url='https://hole', password='secret', **params, **tls)

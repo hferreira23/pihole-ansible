@@ -19,6 +19,7 @@ seealso:
   - module: hferreira23.pihole.groups
 author:
   - Shane Barbetta (@sbarbett)
+  - Hugo Ferreira (@hferreira23)
 '''
 
 EXAMPLES = r'''

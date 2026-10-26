@@ -5,15 +5,17 @@ import os
 from pathlib import Path
 import subprocess
 import sys
+import tarfile
 
 import pytest
 import yaml
 
 from ansible_collections.hferreira23.pihole.plugins.module_utils.lists import list_argument_spec
+from ansible_collections.hferreira23.pihole.plugins.module_utils.domains import domain_argument_spec
 
 
 ROOT = Path(__file__).resolve().parents[2]
-MODULES = ('allow_list', 'block_list', 'clients', 'groups', 'dhcp_config',
+MODULES = ('allow_list', 'block_list', 'clients', 'groups', 'domains', 'dhcp_config',
            'dhcp_remove_lease', 'listening_mode', 'local_a_record', 'local_aaaa_record', 'local_cname')
 LIST_MODULES = ('allow_list', 'block_list')
 
@@ -33,6 +35,9 @@ def collection_docs(tmp_path_factory):
 
     run('ansible-galaxy', 'collection', 'build', ROOT, '--output-path', directory)
     archive, = directory.glob('*.tar.gz')
+    assert 'pihole-creds' in yaml.safe_load((ROOT / 'galaxy.yml').read_text())['build_ignore']
+    with tarfile.open(archive) as package:
+        assert all(Path(member.name).name != 'pihole-creds' for member in package.getmembers())
     run('ansible-galaxy', 'collection', 'install', archive, '-p', directory / 'collections', '--offline', '--force')
     docs = json.loads(run('ansible-doc', '--json', *['hferreira23.pihole.' + name for name in MODULES]))
     return docs, run
@@ -55,22 +60,26 @@ def test_packaged_ansible_doc_connection_options(collection_docs, name):
     assert 'sbarbett.pihole.' not in module['examples']
 
 
-@pytest.mark.parametrize('name', LIST_MODULES)
-def test_list_docs_match_runtime_contract(collection_docs, name):
-    docs, _ = collection_docs
-    module = docs['hferreira23.pihole.' + name]
-    documented = module['doc']['options']
-    actual = list_argument_spec()
+def assert_options_match_spec(documented, actual):
+    """Compare public docs with argument parsing, including nested entries."""
     assert set(documented) == set(actual)
     for option, spec in actual.items():
         assert documented[option]['type'] == spec['type']
         assert documented[option].get('default') == spec.get('default')
         assert documented[option].get('required', False) == spec.get('required', False)
+        assert documented[option].get('choices') == spec.get('choices')
+        assert documented[option].get('elements') == spec.get('elements')
+        if 'options' in spec:
+            assert_options_match_spec(documented[option]['suboptions'], spec['options'])
+
+
+@pytest.mark.parametrize('name', LIST_MODULES)
+def test_list_docs_match_runtime_contract(collection_docs, name):
+    docs, _ = collection_docs
+    module = docs['hferreira23.pihole.' + name]
+    documented = module['doc']['options']
+    assert_options_match_spec(documented, list_argument_spec())
     nested = documented['lists']['suboptions']
-    assert set(nested) == set(actual['lists']['options'])
-    for option, spec in actual['lists']['options'].items():
-        assert nested[option]['type'] == spec['type']
-        assert nested[option].get('default') == spec.get('default')
     assert documented['groups']['elements'] == nested['groups']['elements'] == 'raw'
     assert documented['gravity_timeout']['type'] == 'int'
     assert documented['gravity_timeout']['default'] == 60
@@ -83,7 +92,7 @@ def test_list_docs_match_runtime_contract(collection_docs, name):
     assert {'address', 'action', 'response', 'current'} == module['return']['result']['contains'].keys()
 
 
-@pytest.mark.parametrize('name', ('allow_list', 'block_list', 'groups', 'clients'))
+@pytest.mark.parametrize('name', ('allow_list', 'block_list', 'groups', 'clients', 'domains'))
 def test_human_readable_help_renders_new_features(collection_docs, name):
     _, run = collection_docs
     output = run('ansible-doc', 'hferreira23.pihole.' + name)
@@ -104,7 +113,7 @@ def test_packaged_comment_docs_explain_preserve_and_clear(collection_docs, name)
     assert 'preserves' in rendered and "C('')" in rendered
 
 
-@pytest.mark.parametrize('name', ('allow_list', 'block_list', 'groups', 'clients'))
+@pytest.mark.parametrize('name', ('allow_list', 'block_list', 'groups', 'clients', 'domains'))
 def test_task_snippet_includes_shared_tls_options(collection_docs, name):
     _, run = collection_docs
     output = run('ansible-doc', '--snippet', 'hferreira23.pihole.' + name)
@@ -113,6 +122,28 @@ def test_task_snippet_includes_shared_tls_options(collection_docs, name):
     assert 'validate_certs:' in output and 'ca_path:' in output
     if name in LIST_MODULES:
         assert 'gravity_timeout:' in output
+
+
+def test_domain_docs_match_runtime_contract(collection_docs):
+    docs, _ = collection_docs
+    module = docs['hferreira23.pihole.domains']
+    documented = module['doc']['options']
+    assert_options_match_spec(documented, domain_argument_spec())
+    nested = documented['domains']['suboptions']
+    assert nested['groups']['elements'] == 'raw'
+    assert 'preserves' in ' '.join(nested['groups']['description'])
+    assert 'preserves' in ' '.join(nested['enabled']['description'])
+    assert module['doc']['attributes']['check_mode']['support'] == 'full'
+    assert module['doc']['attributes']['diff_mode']['support'] == 'none'
+    assert {'changed', 'domains', 'response', 'status_code'} == module['return'].keys()
+    assert {'domain', 'type', 'kind', 'action', 'comment', 'groups', 'enabled', 'response'} == module['return']['domains']['contains'].keys()
+    assert module['return']['domains']['contains']['comment']['type'] == 'raw'
+
+
+@pytest.mark.parametrize('name', MODULES)
+def test_module_authors_include_fork_maintainer(collection_docs, name):
+    docs, _ = collection_docs
+    assert 'Hugo Ferreira (@hferreira23)' in docs['hferreira23.pihole.' + name]['doc']['author']
 
 
 def validate_inputs(inputs, options):

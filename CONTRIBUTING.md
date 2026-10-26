@@ -25,6 +25,13 @@ Ansible module entry point and argument specification
 live in `plugins/module_utils/api.py`. Check those boundaries before adding a new
 copy of existing logic.
 
+`domains` manages individual allow/deny exact/regex entries through
+`plugins/module_utils/domains.py`. Its collection-owned client adapter reads all
+types/kinds and URI-escapes identities for regex-safe operations. Unlike lists,
+domain updates preserve omitted enabled state as well as comments and groups.
+No gravity runs for individual domains. Test with `tests/unit/test_domains.py`
+and `tests/integration/test_domain_http.py` (loopback only).
+
 The `roles/` tree is historical, excluded from the Galaxy artifact, and still has
 upstream namespace references. Treat role work as a separate scope. The current
 automated tests exercise collection code, not deployments of those roles.

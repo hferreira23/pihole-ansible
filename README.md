@@ -38,6 +38,7 @@ This collection includes:
 - `listening_mode`: Configure PiHole's DNS listening mode
 - `block_list`: Manage block lists with batch processing
 - `allow_list`: Manage allow lists with batch processing
+- `domains`: Manage individual exact/regex whitelist and blacklist entries (the Domains tab)
 - `groups`: Manage PiHole groups
 - `clients`: Manage PiHole clients
 
@@ -136,6 +137,48 @@ or the `pipx` approach above, and point Ansible's module interpreter at the
 environment containing `pihole6api`.
 
 ## Usage Examples
+
+### Individual whitelist and blacklist domains
+
+Use `hferreira23.pihole.domains` for the web UI's **Domains** tab. The existing
+`allow_list` and `block_list` modules manage feed subscriptions instead.
+
+```yaml
+- name: Manage individual domain rules
+  hferreira23.pihole.domains:
+    url: "{{ pihole_url }}"
+    password: "{{ pihole_password }}"
+    domains:
+      - domain: allowed.example.com
+        type: allow
+        groups: [Default]
+      - domain: '(^|\.)ads\.example\.com$'
+        type: deny
+        kind: regex
+        groups: [0]
+      - domain: obsolete.example.com
+        type: deny
+        state: absent
+```
+
+`type` is `allow` (whitelist) or `deny` (blacklist); `kind` defaults to `exact`,
+and `state` to `present`. Each `(domain, type, kind)` is independent. Unlisted
+entries remain untouched; duplicate identities are rejected. To move an entry,
+explicitly remove the old identity and add the new one.
+
+For existing domains, omitted/null `comment`, `groups`, and `enabled` preserve
+current values. Use `comment: ""` or `groups: []` to clear those fields. Cleared
+comments are normalized to `null`, matching Pi-hole's response. New
+entries default to no comment, no group memberships, and enabled. Assign groups
+explicitly for a rule to apply to those groups. Integer IDs remain integers;
+numeric strings are names. Unknown names and malformed reads fail before writes.
+
+Check mode authenticates and reads but never writes. Regex syntax is validated
+by Pi-hole on actual writes, not during preview. No gravity run is needed or
+performed. A failed batch retains earlier successful changes, without rollback.
+TLS verification remains enabled from authentication onward. See
+[`examples/manage-domains.yml`](examples/manage-domains.yml) and
+`ansible-doc hferreira23.pihole.domains` for complete usage and returns.
 
 ### List reconciliation and TLS
 

@@ -24,6 +24,7 @@ apply within those directories.
 | --- | --- |
 | `plugins/modules/` | Ansible module entry points, argument specs, `DOCUMENTATION`, `EXAMPLES`, and `RETURN` |
 | `plugins/module_utils/lists.py` | Shared allow/block list argument spec, planning, reconciliation, check mode, and gravity |
+| `plugins/module_utils/domains.py` | Individual allow/deny exact/regex domain planning, preservation, check mode, and reconciliation |
 | `plugins/module_utils/api.py` | Response validation, fail-closed group resolution, structured failure details |
 | `plugins/module_utils/client.py` | Collection-owned Requests transport and wrapper around external `pihole6api` endpoint classes |
 | `plugins/doc_fragments/` | Shared connection/TLS and list-management documentation, merged by `ansible-doc` |
@@ -60,6 +61,11 @@ apply within those directories.
 - Integer group IDs stay integers. Numeric strings are names. Unknown group names
   and failed/malformed reads must fail, never silently drop assignments or imply
   an empty server. Resolve names before batch writes.
+- Domains use `(domain, type, kind)` identities, preserve omitted/null comment,
+  groups, and enabled state, and never run gravity. Exact names are lowercased
+  and IDNA-encoded; regex identities remain unchanged and URI-escaped on the wire.
+  Read all four type/kind combinations, fail on malformed state, reject duplicate
+  input identities, and retain earlier successful writes on later batch failure.
 - List check mode authenticates and reads state, predicts changes, and skips list
   mutations and gravity. It still fails on read errors and unknown names. Do not
   claim equivalent check-mode behavior for unrelated modules without checking

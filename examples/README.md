@@ -30,6 +30,40 @@ or configure `REQUESTS_CA_BUNDLE`. Prefer a trusted CA bundle over setting
 `pihole_validate_certs: false`, which explicitly disables verification. HTTPS is
 still required to encrypt the password; certificate options do not secure HTTP.
 
+## Individual domains (whitelist and blacklist)
+
+`manage-domains.yml` manages entries in the UI's **Domains** tab, not feed
+subscriptions. `type: allow` is the whitelist and `type: deny` is the blacklist.
+Both types support `kind: exact` (default) and `kind: regex`. Use single-quoted
+YAML for regex strings so backslashes survive unchanged. Pi-hole, not Python,
+validates regex syntax on actual writes.
+
+Each `(domain, type, kind)` is independent; `state` defaults to `present`.
+`state: absent` deletes only that identity and ignores its other settings.
+Unlisted entries are untouched and `domains: []` manages nothing. Duplicate
+identities fail before connecting. To change a type/kind, explicitly remove the
+old identity and add the new one; this is not an atomic move.
+
+Omitted/null `comment`, `groups`, and `enabled` preserve existing values.
+Explicit `comment: ""` clears the comment and `groups: []` clears memberships.
+Pi-hole returns a cleared comment as `null`; the module treats that as converged.
+New entries default to no comment, no memberships, and enabled. Set `groups`
+explicitly to make a rule apply to clients in those groups. Names resolve
+case-insensitively; integer IDs are accepted, but numeric strings are names.
+All names must exist before the invocation. Failed/malformed reads and unknown
+names prevent any writes; a later write failure retains earlier successes.
+
+```sh
+# Read-only preview (still authenticates and reads, but cannot validate regex syntax):
+ansible-playbook -i localhost, -e @vault.yml --ask-vault-pass examples/manage-domains.yml --check
+# Apply and rerun to check convergence:
+ansible-playbook -i localhost, -e @vault.yml --ask-vault-pass examples/manage-domains.yml
+ansible-doc hferreira23.pihole.domains
+```
+
+No gravity update is needed or performed for domain entries. Domain `enabled`
+omission preserves state, unlike list modules where it defaults to `true`.
+
 ## List behavior
 
 `manage-block-lists.yml` and `manage-allow-lists.yml` batch present/update/absent operations. The `groups` field behaves as follows:

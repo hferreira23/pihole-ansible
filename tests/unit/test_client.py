@@ -187,3 +187,20 @@ def test_unconfigured_action_timeout_uses_connection_default(client):
     client.actions.run_gravity()
     client.actions.restart_dns()
     assert all(call[2]['timeout'] == 10 for call in session.calls)
+
+
+def test_domains_reads_all_types_and_kinds(client):
+    client.domain_management.get_domains()
+    assert client.connection.session.calls[-1][1] == 'https://hole/api/domains'
+
+
+@pytest.mark.parametrize('method', ['get_domain', 'update_domain', 'delete_domain'])
+def test_domain_path_identity_is_encoded_without_changing_json(client, method):
+    from urllib.parse import quote
+    domain = r'(^|\.)ad/[a-z]+\?#%\.example$'
+    getattr(client.domain_management, method)(domain, 'deny', 'regex')
+    _, url, kwargs = client.connection.session.calls[-1]
+    assert url == 'https://hole/api/domains/deny/regex/' + quote(domain, safe='')
+    assert kwargs['verify'] is True
+    if method == 'update_domain':
+        assert kwargs['json']['kind'] == 'regex' and kwargs['json']['type'] == 'deny'

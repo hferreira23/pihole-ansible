@@ -32,6 +32,7 @@ seealso:
 version_added: "1.0.0"
 author:
   - Simon Barbett (@sbarbett)
+  - Hugo Ferreira (@hferreira23)
 options:
   clients:
     description:

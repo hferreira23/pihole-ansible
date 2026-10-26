@@ -140,6 +140,12 @@ def test_domain_docs_match_runtime_contract(collection_docs):
     assert module['return']['domains']['contains']['comment']['type'] == 'raw'
 
 
+@pytest.mark.parametrize('name', MODULES)
+def test_module_authors_include_fork_maintainer(collection_docs, name):
+    docs, _ = collection_docs
+    assert 'Hugo Ferreira (@hferreira23)' in docs['hferreira23.pihole.' + name]['doc']['author']
+
+
 def validate_inputs(inputs, options):
     assert set(inputs) <= options.keys(), 'Unknown module options: {0}'.format(set(inputs) - options.keys())
     for key, value in inputs.items():

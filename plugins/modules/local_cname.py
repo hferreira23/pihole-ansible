@@ -49,6 +49,7 @@ options:
         type: str
 author:
     - Shane Barbetta (@sbarbett)
+    - Hugo Ferreira (@hferreira23)
 '''
 
 EXAMPLES = r'''

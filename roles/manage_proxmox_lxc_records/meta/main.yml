@@ -1,5 +1,5 @@
 galaxy_info:
-  author: Stefan Grosser
+  author: Stefan Grosser, Hugo Ferreira
   description: >
     An Ansible role that will manage Proxmox LXC A/AAAA records across several Pi-hole instances.
   license: MIT
